@@ -103,10 +103,21 @@ def probe(ip):
         return ip, None
 
 
+CROSTINI_NET = ipaddress.ip_network("100.115.92.0/24")
+
+
 def cmd_discover(a):
-    candidates = [] if a.scan else ssdp_search()
+    me = local_ip()
+    if not a.subnet and ipaddress.ip_address(me) in CROSTINI_NET:
+        raise SystemExit("Running in ChromeOS Linux, which can't see the home network directly.\n"
+                         "Pass the Wi-Fi subnet, e.g.  discover --subnet 192.168.1.0/24\n"
+                         "(ChromeOS Settings > Network > Wi-Fi > your network shows the Chromebook's IP),\n"
+                         "or skip discovery:  tv.py --ip <TV IP> pair  (TV: Settings > General > Network > Network Status).")
+    candidates = [] if (a.scan or a.subnet) else ssdp_search()
     if not candidates:
-        net = ipaddress.ip_network(local_ip() + "/24", strict=False)
+        net = ipaddress.ip_network(a.subnet or me + "/24", strict=False)
+        if net.num_addresses > 1024:
+            raise SystemExit("subnet too large; use a /22 or smaller")
         print("Scanning %s for port 8001 ..." % net)
         candidates = [str(h) for h in net.hosts()]
     tvs = []
@@ -387,6 +398,7 @@ def main():
     s = sub.add_parser("discover", help="find Samsung TVs on the LAN (SSDP, then /24 scan)")
     s.add_argument("--scan", action="store_true", help="skip SSDP, scan the /24 directly")
     s.add_argument("--save", action="store_true", help="save the first result even if several are found")
+    s.add_argument("--subnet", help="scan this network instead, e.g. 192.168.1.0/24 (needed on ChromeOS Linux)")
     s.set_defaults(fn=cmd_discover)
 
     sub.add_parser("info", help="device info from :8001/api/v2/").set_defaults(fn=cmd_info)

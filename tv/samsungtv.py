@@ -209,10 +209,12 @@ class SamsungTV:
                 break
             evt = json.loads(msg)
             if evt.get("event") == "ms.channel.connect":
-                token = (evt.get("data") or {}).get("token")
-                if token and token != self.token:
+                token = (evt.get("data") or {}).get("token") or self.token
+                state = load_state()
+                if state.get("ip") != self.ip or state.get("token") != token:
+                    if state.get("ip") != self.ip:
+                        state = {}
                     self.token = token
-                    state = load_state()
                     state.update({"ip": self.ip, "token": token})
                     save_state(state)
                 return self

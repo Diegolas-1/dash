@@ -6,6 +6,7 @@
 - Claude Code must run on a **laptop on the same Wi-Fi as the TV** (Windows, macOS or Linux). A cloud session cannot reach the TV.
 - The user may be driving this session **from their phone** (Remote Control). Assume they cannot type on the laptop: never start interactive commands (`tv.py record`, password prompts); use the non-interactive forms below. Ask them to act only on the TV/remote or phone, and say exactly which button or menu.
 - Commands are written `python`; on macOS/Linux use `python3`. Windows: if `python` opens the Store, use `py`.
+- **Chromebook:** runs in the ChromeOS Linux container, which is behind NAT on `100.115.92.x`. SSDP and the default scan can't see the home LAN: use `discover --subnet <wifi subnet>` or `--ip <TV IP>`. Developer Mode host IP = the Chromebook's Wi-Fi IP from ChromeOS Settings, not `ip addr` in Linux. The webcam page opens in ChromeOS Chrome via `localhost` forwarding. Tizen Studio (steps 8–10) needs an Intel/AMD Chromebook; on ARM, stop after step 7. Keep the lid open; ChromeOS sleeps the Linux container otherwise.
 - Camera: default is the **laptop webcam** aimed at the TV (`python tv/camera/server.py --webcam`, keep that browser window visible, not minimized). Phone camera mode (`server.py` without `--webcam`) only if the user has a spare phone, since their phone is the controller.
 
 ## Layout
@@ -31,7 +32,7 @@
 
 ## Workflow
 0. **Setup check:** `python --version` (3.8+), `node --version` (only needed for the home app). Windows: if `discover` finds nothing, Windows Firewall may be blocking Python on the Private network; ask the user to allow it, and confirm the Wi-Fi network profile is Private.
-1. **Recon:** `python tv/tv.py discover` → `info`. Confirm `OS: Tizen` (no ADB/root on Tizen; don't try). Note model, firmware, `developerMode`.
+1. **Recon:** `python tv/tv.py discover` (Chromebook: `--subnet`) → `info`. Confirm `OS: Tizen` (no ADB/root on Tizen; don't try). Note model, firmware, `developerMode`.
 2. **Pair:** `python tv/tv.py pair` (user presses Allow on the TV). Smoke test: `tv.py key HOME`.
 3. **Camera:** start `python tv/camera/server.py --webcam` in the background (it opens the page; user clicks Start and allows the camera, then aims the laptop at the TV). Verify `latest.jpg` updates and the TV is legible.
 4. **Inventory:** walk Settings menus, photograph and list every privacy/ad-related setting with its current value before touching anything.

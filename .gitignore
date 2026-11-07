@@ -1,0 +1,8 @@
+# TV workflow: private/runtime state
+tv/state/
+tv/camera/frames/
+tv/camera/certs/
+tv/homeapp/service/auth.js
+*.wgt
+__pycache__/
+.DS_Store

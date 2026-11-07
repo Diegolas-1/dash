@@ -1,0 +1,75 @@
+:root {
+  --fg: #F2F4F7;
+  --muted: rgba(242, 244, 247, 0.72);
+  --accent: #1DB954;
+  --glass: rgba(10, 14, 20, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.12);
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+  background: #05080C; color: var(--fg);
+  font-family: "SamsungOne", "Samsung Sans", system-ui, sans-serif;
+}
+
+#bg, #bg .layer, #shade, #dim { position: absolute; inset: 0; }
+#bg .layer {
+  background-size: cover; background-position: center; opacity: 0;
+  transition: opacity 2.5s ease-in-out;
+}
+#bg .layer.on { opacity: 1; }
+#bg .layer.empty { background: radial-gradient(1200px 800px at 20% 20%, #1A2A3A, #05080C); }
+body.saver #bg .layer.on { animation: drift 40s ease-in-out infinite alternate; }
+@keyframes drift { from { transform: scale(1.0); } to { transform: scale(1.08) translate(-1%, -1%); } }
+
+#shade {
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 28%),
+    linear-gradient(0deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0) 45%);
+  transition: opacity 1s;
+}
+#dim { background: #000; opacity: 0; pointer-events: none; transition: opacity 3s; }
+
+#ui { position: absolute; inset: 0; padding: 56px 80px; transition: opacity 1s; }
+body.saver #ui, body.saver #shade { opacity: 0; }
+
+header { display: flex; justify-content: space-between; align-items: flex-start; }
+#time { font-size: 132px; font-weight: 300; line-height: 1; letter-spacing: -2px; text-shadow: 0 4px 24px rgba(0,0,0,.5); }
+#date { font-size: 36px; color: var(--muted); margin-top: 8px; }
+#weather { text-align: right; text-shadow: 0 2px 12px rgba(0,0,0,.6); }
+#wTemp { font-size: 84px; font-weight: 300; line-height: 1; }
+#wDesc { font-size: 32px; margin-top: 6px; }
+#wRange { font-size: 26px; color: var(--muted); }
+
+#prayers {
+  position: absolute; right: 80px; top: 280px; width: 300px;
+  background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px; padding: 18px 24px;
+}
+#prayers .p { display: flex; justify-content: space-between; font-size: 26px; padding: 6px 0; color: var(--muted); }
+#prayers .p.next { color: var(--fg); font-weight: 700; }
+#prayers .p.next span:first-child::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); margin-right: 10px; vertical-align: middle; }
+
+footer { position: absolute; left: 80px; right: 80px; bottom: 48px; }
+.rowLabel { font-size: 22px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin: 14px 0 10px; }
+.dock { display: flex; gap: 24px; }
+.tile {
+  width: 220px; height: 124px; border-radius: 18px; flex: 0 0 auto;
+  background: var(--glass); border: 2px solid var(--glass-border);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  font-size: 24px; font-weight: 600; text-align: center; padding: 10px;
+  transition: transform .15s, border-color .15s, background .15s;
+}
+.tile img { max-width: 120px; max-height: 64px; }
+.tile .ini { font-size: 44px; font-weight: 800; color: var(--accent); }
+.tile.yt { width: 300px; }
+.tile.yt .kind { font-size: 18px; color: var(--muted); font-weight: 400; }
+.tile.focus { transform: scale(1.08); border-color: #fff; background: rgba(255,255,255,0.18); }
+#hint { margin-top: 18px; font-size: 20px; color: var(--muted); }
+
+#toast {
+  position: absolute; left: 50%; top: 60px; transform: translateX(-50%);
+  background: rgba(0,0,0,.8); border: 1px solid var(--glass-border); border-radius: 14px;
+  padding: 16px 28px; font-size: 26px;
+}
+[hidden] { display: none !important; }

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>TV Camera</title>
+  <style>
+    html,body{margin:0;height:100%;background:#000;color:#ddd;font:15px system-ui,-apple-system,sans-serif}
+    video{width:100%;height:100%;object-fit:contain;display:block}
+    #bar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;align-items:center;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(0,0,0,.6)}
+    button{flex:0 0 auto;border:0;border-radius:10px;padding:10px 14px;font-weight:700;background:#1DB954;color:#03230F}
+    #status{flex:1;font-size:13px;opacity:.85}
+  </style>
+</head>
+<body>
+  <video id="v" playsinline muted autoplay></video>
+  <div id="bar"><button id="go">Start</button><span id="status">Tap Start, allow camera, aim at the TV.</span></div>
+  <canvas id="c" hidden></canvas>
+  <script>
+    const INTERVAL = __INTERVAL__;
+    const MAX_W = 1280;
+    const v = document.getElementById('v'), c = document.getElementById('c');
+    const status = document.getElementById('status'), go = document.getElementById('go');
+    const qs = location.search;
+    let timer = null, sent = 0, busy = false, lock = null;
+
+    async function wake() {
+      try { if ('wakeLock' in navigator) lock = await navigator.wakeLock.request('screen'); } catch (e) {}
+    }
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && timer) wake(); });
+
+    function capture() {
+      if (busy || !v.videoWidth) return;
+      busy = true;
+      const scale = Math.min(1, MAX_W / v.videoWidth);
+      c.width = Math.round(v.videoWidth * scale);
+      c.height = Math.round(v.videoHeight * scale);
+      c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+      c.toBlob(async blob => {
+        try {
+          const r = await fetch('/frame' + qs, { method: 'POST', body: blob, headers: { 'Content-Type': 'image/jpeg' } });
+          status.textContent = r.ok ? `sent ${++sent} frames · ${c.width}×${c.height}` : `server said ${r.status}`;
+        } catch (e) {
+          status.textContent = 'upload failed: ' + e.message;
+        } finally { busy = false; }
+      }, 'image/jpeg', 0.75);
+    }
+
+    go.onclick = async () => {
+      if (timer) { clearInterval(timer); timer = null; go.textContent = 'Start'; return; }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false
+        });
+        v.srcObject = stream;
+        await v.play();
+        await wake();
+        timer = setInterval(capture, INTERVAL);
+        go.textContent = 'Stop';
+      } catch (e) {
+        status.textContent = 'camera error: ' + e.message;
+      }
+    };
+  </script>
+</body>
+</html>

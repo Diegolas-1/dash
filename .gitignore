@@ -6,3 +6,6 @@ tv/homeapp/service/auth.js
 *.wgt
 __pycache__/
 .DS_Store
+tv/torrentapp/service/auth.js
+tv/torrentapp/service/engine.js
+node_modules/

@@ -1,0 +1,15 @@
+{
+  "name": "dash-torrent",
+  "private": true,
+  "description": "Builds service/engine.js (WebTorrent bundled for the TV's Node 16 runtime)",
+  "scripts": {
+    "build": "node build/build.js"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.2",
+    "webtorrent": "2.8.5"
+  },
+  "overrides": {
+    "uint8-util": "2.2.5"
+  }
+}

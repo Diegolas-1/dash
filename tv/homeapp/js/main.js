@@ -145,11 +145,13 @@
 
   function startService() {
     if (!hasTizen) return;
-    try {
-      tizen.application.launchAppControl(
-        new tizen.ApplicationControl('http://tizen.org/appcontrol/operation/service'),
-        SERVICE_ID, function () {}, function (e) { console.log('service launch failed', e && e.message); });
-    } catch (e) { console.log('service launch error', e.message); }
+    [SERVICE_ID].concat(C.backgroundServices || []).forEach(function (id) {
+      try {
+        tizen.application.launchAppControl(
+          new tizen.ApplicationControl('http://tizen.org/appcontrol/operation/service'),
+          id, function () {}, function (e) { console.log('service launch failed', id, e && e.message); });
+      } catch (e) { console.log('service launch error', id, e.message); }
+    });
   }
   function loadPhotos() {
     return getJSON(BASE + '/api/photos', 5000).then(function (d) {

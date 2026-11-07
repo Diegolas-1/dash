@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>Dash Torrents</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="$WEBAPIS/webapis/webapis.js"></script>
+</head>
+<body>
+  <object id="av" type="application/avplayer"></object>
+  <video id="vid" hidden></video>
+
+  <div id="app">
+    <header>
+      <h1>Torrents</h1>
+      <div id="status"></div>
+    </header>
+
+    <section id="listView" class="view">
+      <div id="list" class="items"></div>
+    </section>
+
+    <section id="detailView" class="view" hidden>
+      <h2 id="dTitle"></h2>
+      <div id="dMeta" class="meta"></div>
+      <div class="bar big"><i id="dBar"></i></div>
+      <div id="detail" class="items"></div>
+    </section>
+
+    <section id="addView" class="view" hidden>
+      <h2>Add a magnet link</h2>
+      <p class="meta">Easier from your phone: <span class="phoneUrl"></span></p>
+      <div id="add" class="items"></div>
+    </section>
+
+    <footer id="hint"></footer>
+  </div>
+
+  <div id="osd" hidden>
+    <div id="osdTitle"></div>
+    <div id="osdInfo"></div>
+    <div class="bar"><i id="osdBar"></i></div>
+    <div id="osdTime"></div>
+  </div>
+  <div id="toast" hidden></div>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

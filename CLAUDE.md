@@ -17,8 +17,9 @@
 - `tv/macros/*.json` – key sequences (forward + undo)
 - `tv/state/` (gitignored) – `tv.json` (IP, token), `changes.json` (settings log), `photos/`, `build/`
 - `tv/homeapp/` – Tizen web app (home screen) + `service/service.js` (Node 16 photo upload service, port 8090)
-- `tv/tools/set-password.js` – writes `tv/homeapp/service/auth.js` (gitignored); use `DASH_PASSWORD=...` env, never the prompt
-- `tv/deploy.py` – package, `sdb connect`, install, run
+- `tv/torrentapp/` – Tizen torrent app (`DashTorr01.torrent`): TV UI with AVPlay player + `service/service.js` engine (port 8091: API, streaming, phone page). `service/engine.js` is WebTorrent 2.8.5 bundled by `npm run build` (gitignored; `uint8-util` pinned to 2.2.5, WebRTC stubbed, no uTP). Data: stream cache + TV-storage downloads in the app data dir; USB downloads in `<drive>/Torrents/`. Pauses TV-storage torrents below 1.5 GB free.
+- `tv/tools/set-password.js` – writes `tv/<app>/service/auth.js` (gitignored); `DASH_PASSWORD=... node tv/tools/set-password.js --app homeapp|torrentapp`, never the prompt
+- `tv/deploy.py` – `--app homeapp|torrentapp`: build (npm), package, `sdb connect`, install, run
 
 ## Rules
 1. **Look before acting.** After every key press or macro step, Read `tv/camera/frames/latest.jpg` and confirm the screen matches what you expect. If it doesn't (wrong page, popup, a movie opened), press `KEY_RETURN` and re-orient before continuing. Never chain blind key sequences longer than ~5 keys while exploring.
@@ -26,7 +27,7 @@
 3. **Irreversible = ask first.** Resetting the PSID/advertising ID, factory reset, Samsung account changes, firmware updates: stop and get explicit user approval. Log them with `--irreversible`.
 4. **Never** sign in/out of the Samsung account, accept new terms, or enable any data-sharing option on the user's behalf.
 5. Research claims (menu paths, API behavior, DNS hosts to block) go through the `tv-researcher` agent and are verified by `fact-checker` before acting on them. Menu paths differ by model year; trust the camera over research.
-6. Run the `security-reviewer` agent on `tv/homeapp/service/` before every deploy that changes it.
+6. Run the `security-reviewer` agent on `tv/homeapp/service/` and `tv/torrentapp/service/service.js` before every deploy that changes them.
 7. Developer Mode must be turned **off** at the end of a session; then restart the TV and confirm the home app still launches.
 8. Never ask the user to paste passwords into chat. For the upload password, have them set it on the laptop or generate one and tell them to save it.
 
@@ -44,8 +45,10 @@
 8. **Tizen SDK + certificate:** Tizen Studio CLI (`tizen`, `sdb`); Samsung author + distributor certificate tied to the TV's DUID (`tv.py info` → `duid`), saved as security profile `dash`. Certificates expire after 1 year. Creating the Samsung certificate requires the user to sign in to their Samsung account in a browser window on the laptop.
 9. **Prove the risky part first:** deploy a throwaway app with just the service to confirm the Node background service starts and serves `:8090` on this TV.
 10. **Home app:** edit `tv/homeapp/js/config.js` (location, apps from `tv.py apps`, YouTube shortcuts, dim schedule, prayer times). Set password with `DASH_PASSWORD`, run the security review, then `python tv/deploy.py`.
-11. **Finish:** set Settings > General > Smart Features > Autorun Last App as needed so the home app comes back after power-on; Developer Mode off; restart TV; confirm via camera.
+11. **Torrent app:** `DASH_PASSWORD=... node tv/tools/set-password.js --app torrentapp`, security review, `python tv/deploy.py --app torrentapp`. Then verify on the TV, in order: engine starts (TV app header shows no "Engine error", phone page loads at `http://<tv-ip>:8091`); a small legal test torrent (e.g. a Linux ISO or Blender open movie) finds peers; playback of MP4 and MKV via AVPlay including seeking; plug in a USB drive, confirm the header lists it as writable, download to it, then check the files under Source → USB on the TV. If the USB shows "read-only", the sandbox blocks writes there: report it, don't work around it.
+12. **Finish:** set Settings > General > Smart Features > Autorun Last App as needed so the home app comes back after power-on; Developer Mode off; restart TV; confirm via camera.
 
 ## Testing without a TV
 - `DASH_PHOTO_DIR=<tmp dir> node tv/homeapp/service/service.js` then open `http://localhost:8090`
+- `cd tv/torrentapp && npm ci --omit=optional && npm run build`, then `DASH_TORRENT_DIR=<tmp> DASH_USB_ROOTS=<tmp usb dir> node service/service.js`; open `index.html` (TV UI) and `http://localhost:8091` (phone page)
 - Open `tv/homeapp/index.html` in a browser at 1920×1080 (Tizen APIs are stubbed out when absent)

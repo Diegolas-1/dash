@@ -1,0 +1,68 @@
+:root {
+  --bg: #0B0F14;
+  --fg: #F2F4F7;
+  --muted: rgba(242, 244, 247, 0.62);
+  --card: #121821;
+  --border: #1F2933;
+  --accent: #1DB954;
+  --bad: #F2545B;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+  background: var(--bg); color: var(--fg);
+  font-family: "SamsungOne", "Samsung Sans", system-ui, sans-serif;
+}
+body.playing { background: transparent; }
+body.playing #app { display: none; }
+
+#av, #vid { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; background: #000; }
+body:not(.playing) #av, body:not(.playing) #vid { visibility: hidden; }
+
+#app { position: absolute; inset: 0; padding: 56px 96px; }
+header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 28px; }
+h1 { font-size: 56px; font-weight: 700; margin: 0; }
+h2 { font-size: 40px; margin: 0 0 8px; font-weight: 600; word-break: break-word; }
+#status { font-size: 24px; color: var(--muted); text-align: right; line-height: 1.5; }
+.meta { font-size: 24px; color: var(--muted); }
+footer { position: absolute; left: 96px; right: 96px; bottom: 36px; font-size: 22px; color: var(--muted); }
+
+.items { margin-top: 20px; max-height: 780px; overflow: hidden; }
+#detailView .items { max-height: 640px; }
+.item {
+  background: var(--card); border: 2px solid var(--border); border-radius: 18px;
+  padding: 18px 26px; margin-bottom: 14px; font-size: 28px;
+  transition: transform .12s, border-color .12s, background .12s;
+}
+.item .sub { font-size: 22px; color: var(--muted); margin-top: 4px; }
+.item.action { display: inline-block; margin-right: 14px; padding: 16px 28px; }
+.item.danger { color: var(--bad); }
+.item.sel { border-color: #fff; background: #1B2532; transform: scale(1.015); }
+.item input {
+  width: 100%; font: inherit; font-size: 26px; color: var(--fg); background: #0E141B;
+  border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+}
+.badge { display: inline-block; font-size: 18px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 8px; margin-right: 12px; background: #24303D; color: var(--muted); vertical-align: middle; }
+.badge.stream { color: #7CC4FF; }
+.badge.download { color: var(--accent); }
+.badge.done { background: var(--accent); color: #03230F; }
+
+.bar { height: 8px; background: #0E141B; border-radius: 4px; margin-top: 10px; overflow: hidden; }
+.bar.big { height: 12px; margin: 14px 0 8px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+
+#osd {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 96px 56px;
+  background: linear-gradient(0deg, rgba(0,0,0,.85), rgba(0,0,0,0));
+}
+#osdTitle { font-size: 36px; font-weight: 600; }
+#osdInfo { font-size: 24px; color: var(--muted); margin-top: 6px; min-height: 30px; }
+#osdTime { font-size: 24px; margin-top: 10px; }
+
+#toast {
+  position: absolute; left: 50%; top: 60px; transform: translateX(-50%); max-width: 1400px;
+  background: rgba(0,0,0,.85); border: 1px solid var(--border); border-radius: 14px; padding: 16px 28px; font-size: 26px;
+}
+[hidden] { display: none !important; }

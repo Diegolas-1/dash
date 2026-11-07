@@ -1,14 +1,20 @@
 #!/usr/bin/env node
 'use strict';
-// Writes tv/homeapp/service/auth.js (scrypt hash) for the photo upload site.
-// Usage: node tv/tools/set-password.js            (prompts)
-//        DASH_PASSWORD=... node tv/tools/set-password.js
+// Writes tv/<app>/service/auth.js (scrypt hash) for an app's phone web page.
+// Usage: DASH_PASSWORD=... node tv/tools/set-password.js [--app homeapp|torrentapp]
+//        node tv/tools/set-password.js [--app ...]          (prompts)
 var crypto = require('crypto');
 var fs = require('fs');
 var path = require('path');
 var readline = require('readline');
 
-var OUT = path.join(__dirname, '..', 'homeapp', 'service', 'auth.js');
+var appArg = process.argv.indexOf('--app');
+var APP = appArg > 0 ? process.argv[appArg + 1] : 'homeapp';
+if (['homeapp', 'torrentapp'].indexOf(APP) < 0) {
+  console.error('--app must be homeapp or torrentapp');
+  process.exit(1);
+}
+var OUT = path.join(__dirname, '..', APP, 'service', 'auth.js');
 var PARAMS = { N: 16384, r: 8, p: 1 };
 
 function write(pw) {

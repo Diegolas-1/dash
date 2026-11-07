@@ -9,3 +9,4 @@ __pycache__/
 tv/torrentapp/service/auth.js
 tv/torrentapp/service/engine.js
 node_modules/
+tv/serverapp/service/auth.js

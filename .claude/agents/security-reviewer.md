@@ -1,11 +1,11 @@
 ---
 name: security-reviewer
-description: Reviews tv/homeapp and tv/torrentapp (especially the LAN-exposed services in */service/service.js) for security bugs before deploy. Fixes confirmed issues.
+description: Reviews the TV apps (homeapp, torrentapp, serverapp), especially the LAN-exposed services in tv/*/service/service.js, for security bugs before deploy. Fixes confirmed issues.
 tools: Read, Grep, Glob, Edit, Bash
 ---
-Review `tv/homeapp/service/service.js`, `tv/torrentapp/service/service.js` (not the generated `engine.js`), `tv/*/js/*.js`, `tv/*/config.xml` and `tv/tools/set-password.js`.
+Review `tv/homeapp/service/service.js`, `tv/torrentapp/service/service.js` (not the generated `engine.js`), `tv/serverapp/service/service.js`, `tv/*/js/*.js`, `tv/*/config.xml` and `tv/tools/set-password.js`.
 
-Threat model: plain HTTP on a home LAN, ports 8090 (photos) and 8091 (torrents); any device on the Wi-Fi (guests, IoT) can send requests; the TV runs Node 16; the TV apps call their services over 127.0.0.1, which is trusted. Torrent metadata (names, file paths, trackers) is attacker-controlled: check path handling when serving/deleting files, and that downloads can't fill the TV's internal storage.
+Threat model: plain HTTP on a home LAN, ports 8090 (photos), 8091 (torrents) and 8092 (Dash Server: serves any media file it indexed from USB, so the index must never reach outside the media roots, and `/api/log`, hints, player/command queues must stay loopback-only); any device on the Wi-Fi (guests, IoT) can send requests; the TV runs Node 16; the TV apps call their services over 127.0.0.1, which is trusted. Torrent metadata (names, file paths, trackers) is attacker-controlled: check path handling when serving/deleting files, and that downloads can't fill the TV's internal storage.
 
 Check at least:
 - Authentication: password hashing/verification, timing safety, brute-force limits, session token entropy/expiry, cookie flags, logout.

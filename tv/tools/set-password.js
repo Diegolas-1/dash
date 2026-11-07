@@ -10,8 +10,8 @@ var readline = require('readline');
 
 var appArg = process.argv.indexOf('--app');
 var APP = appArg > 0 ? process.argv[appArg + 1] : 'homeapp';
-if (['homeapp', 'torrentapp'].indexOf(APP) < 0) {
-  console.error('--app must be homeapp or torrentapp');
+if (['homeapp', 'torrentapp', 'serverapp'].indexOf(APP) < 0) {
+  console.error('--app must be homeapp, torrentapp or serverapp');
   process.exit(1);
 }
 var OUT = path.join(__dirname, '..', APP, 'service', 'auth.js');

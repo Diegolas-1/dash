@@ -52,6 +52,18 @@ try { WebTorrent = require('./engine.js').default; } catch (e) { engineError = e
 var auth = null;
 try { auth = require('./auth.js'); } catch (e) { auth = null; }
 
+// ---------------------------------------------------------------- ring log (read by Dash Server dashboard, loopback only)
+var LOG_MAX = 300;
+var logLines = [];
+function logLine(level, args) {
+  var text = Array.prototype.map.call(args, function (a) { return a instanceof Error ? a.message : typeof a === 'string' ? a : JSON.stringify(a); }).join(' ');
+  logLines.push({ t: Date.now(), l: level, m: text.slice(0, 500) });
+  if (logLines.length > LOG_MAX) logLines.shift();
+}
+var _log = console.log, _err = console.error;
+console.log = function () { logLine('info', arguments); _log.apply(console, arguments); };
+console.error = function () { logLine('error', arguments); _err.apply(console, arguments); };
+
 var server = null, client = null;
 var dataDir, cacheDir, internalDir, torrentDir, stateFile;
 var db = { settings: { seedAfterDone: false, downloadLimitKBps: 0, uploadLimitKBps: 0 }, torrents: [] };
@@ -629,6 +641,10 @@ function route(req, res) {
       return send(req, res, 200, { ok: true }, null, { 'Set-Cookie': COOKIE + '=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' });
     }
     if (m === 'GET' && url === '/api/session') return send(req, res, 200, { loggedIn: !!sessionOf(req), configured: !!auth });
+    if (m === 'GET' && url === '/api/log') {
+      if (!isLoopback(req)) return send(req, res, 403, { error: 'forbidden' });
+      return send(req, res, 200, { lines: logLines });
+    }
 
     if ((m === 'GET' || m === 'HEAD') && parts[1] === 'stream' && parts.length >= 4) {
       if (!canRead(req)) return send(req, res, 401, { error: 'login required' });

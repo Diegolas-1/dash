@@ -18,8 +18,9 @@
 - `tv/state/` (gitignored) – `tv.json` (IP, token), `changes.json` (settings log), `photos/`, `build/`
 - `tv/homeapp/` – Tizen web app (home screen) + `service/service.js` (Node 16 photo upload service, port 8090)
 - `tv/torrentapp/` – Tizen torrent app (`DashTorr01.torrent`): TV UI with AVPlay player + `service/service.js` engine (port 8091: API, streaming, phone page). `service/engine.js` is WebTorrent 2.8.5 bundled by `npm run build` (gitignored; `uint8-util` pinned to 2.2.5, WebRTC stubbed, no uTP). Data: stream cache + TV-storage downloads in the app data dir; USB downloads in `<drive>/Torrents/`. Pauses TV-storage torrents below 1.5 GB free.
-- `tv/tools/set-password.js` – writes `tv/<app>/service/auth.js` (gitignored); `DASH_PASSWORD=... node tv/tools/set-password.js --app homeapp|torrentapp`, never the prompt
-- `tv/deploy.py` – `--app homeapp|torrentapp`: build (npm), package, `sdb connect`, install, run
+- `tv/serverapp/` – "Dash Server" (`DashSrv01.server`): the TV-as-server app. TV UI: Home (hardware/services/storage cards, continue watching, quick actions), Library (USB media: movies/shows/music from filenames, sidecar posters and .srt/.vtt), Player (AVPlay, resume, subtitles, next episode), Dashboard (service health, storage, speed test, logs). `service/service.js` core on port 8092: library index, range streaming, resume positions, phone page with remote control, dashboard data; it probes :8090/:8091 and reads their loopback-only `/api/log`. Services can be started (not stopped) from the dashboard via the TV app. No external metadata lookups.
+- `tv/tools/set-password.js` – writes `tv/<app>/service/auth.js` (gitignored); `DASH_PASSWORD=... node tv/tools/set-password.js --app homeapp|torrentapp|serverapp`, never the prompt
+- `tv/deploy.py` – `--app homeapp|torrentapp|serverapp`: build (npm), package, `sdb connect`, install, run
 
 ## Rules
 1. **Look before acting.** After every key press or macro step, Read `tv/camera/frames/latest.jpg` and confirm the screen matches what you expect. If it doesn't (wrong page, popup, a movie opened), press `KEY_RETURN` and re-orient before continuing. Never chain blind key sequences longer than ~5 keys while exploring.
@@ -27,7 +28,7 @@
 3. **Irreversible = ask first.** Resetting the PSID/advertising ID, factory reset, Samsung account changes, firmware updates: stop and get explicit user approval. Log them with `--irreversible`.
 4. **Never** sign in/out of the Samsung account, accept new terms, or enable any data-sharing option on the user's behalf.
 5. Research claims (menu paths, API behavior, DNS hosts to block) go through the `tv-researcher` agent and are verified by `fact-checker` before acting on them. Menu paths differ by model year; trust the camera over research.
-6. Run the `security-reviewer` agent on `tv/homeapp/service/` and `tv/torrentapp/service/service.js` before every deploy that changes them.
+6. Run the `security-reviewer` agent on `tv/*/service/service.js` before every deploy that changes them.
 7. Developer Mode must be turned **off** at the end of a session; then restart the TV and confirm the home app still launches.
 8. Never ask the user to paste passwords into chat. For the upload password, have them set it on the laptop or generate one and tell them to save it.
 
@@ -46,9 +47,11 @@
 9. **Prove the risky part first:** deploy a throwaway app with just the service to confirm the Node background service starts and serves `:8090` on this TV.
 10. **Home app:** edit `tv/homeapp/js/config.js` (location, apps from `tv.py apps`, YouTube shortcuts, dim schedule, prayer times). Set password with `DASH_PASSWORD`, run the security review, then `python tv/deploy.py`.
 11. **Torrent app:** `DASH_PASSWORD=... node tv/tools/set-password.js --app torrentapp`, security review, `python tv/deploy.py --app torrentapp`. Then verify on the TV, in order: engine starts (TV app header shows no "Engine error", phone page loads at `http://<tv-ip>:8091`); a small legal test torrent (e.g. a Linux ISO or Blender open movie) finds peers; playback of MP4 and MKV via AVPlay including seeking; plug in a USB drive, confirm the header lists it as writable, download to it, then check the files under Source → USB on the TV. If the USB shows "read-only", the sandbox blocks writes there: report it, don't work around it.
-12. **Finish:** set Settings > General > Smart Features > Autorun Last App as needed so the home app comes back after power-on; Developer Mode off; restart TV; confirm via camera.
+12. **Dash Server:** `DASH_PASSWORD=... node tv/tools/set-password.js --app serverapp`, security review, `python tv/deploy.py --app serverapp`. Verify on the TV: Home cards show the real model/firmware (productinfo privilege) and the USB drive; Library lists files from the USB drive (if empty, check the storage hints: Blue to rescan); play an MP4 and an MKV with a sidecar .srt, confirm resume after Back; phone page at `http://<tv-ip>:8092` shows now-playing and pause/seek work; Dashboard shows Photos/Torrents UP with logs; internet speed test completes. Install order: Dash Server before the home screen update so the Dash Server tile and `backgroundServices` entry resolve.
+13. **Finish:** set Settings > General > Smart Features > Autorun Last App as needed so the home app comes back after power-on; Developer Mode off; restart TV; confirm via camera.
 
 ## Testing without a TV
 - `DASH_PHOTO_DIR=<tmp dir> node tv/homeapp/service/service.js` then open `http://localhost:8090`
 - `cd tv/torrentapp && npm ci --omit=optional && npm run build`, then `DASH_TORRENT_DIR=<tmp> DASH_USB_ROOTS=<tmp usb dir> node service/service.js`; open `index.html` (TV UI) and `http://localhost:8091` (phone page)
+- `DASH_SERVER_DIR=<tmp> DASH_USB_ROOTS=<dir with video files> node tv/serverapp/service/service.js`; open `tv/serverapp/index.html` (TV UI, HTML5 video fallback) and `http://localhost:8092` (phone page)
 - Open `tv/homeapp/index.html` in a browser at 1920×1080 (Tizen APIs are stubbed out when absent)

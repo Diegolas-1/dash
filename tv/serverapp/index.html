@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>Dash Server</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="$WEBAPIS/webapis/webapis.js"></script>
+</head>
+<body>
+  <object id="av" type="application/avplayer"></object>
+  <video id="vid" hidden></video>
+
+  <div id="app">
+    <header>
+      <nav id="tabs">
+        <span class="tab" data-view="home" data-key="tab-home">Home</span>
+        <span class="tab" data-view="library" data-key="tab-library">Library</span>
+        <span class="tab" data-view="dashboard" data-key="tab-dashboard">Dashboard</span>
+      </nav>
+      <div id="clock"></div>
+    </header>
+
+    <section id="homeView" class="view">
+      <div class="hw">
+        <div class="hwCard">
+          <div class="hwTitle">DASH SERVER</div>
+          <div class="hwGrid" id="hwGrid"></div>
+        </div>
+        <div class="hwCard">
+          <div class="hwTitle">SERVICES</div>
+          <div id="hwServices"></div>
+        </div>
+        <div class="hwCard">
+          <div class="hwTitle">STORAGE</div>
+          <div id="hwStorage"></div>
+        </div>
+      </div>
+      <div class="rowLabel" id="cwLabel">Continue watching</div>
+      <div class="shelf" id="cwShelf"></div>
+      <div class="rowLabel">Quick actions</div>
+      <div class="dock" id="homeDock"></div>
+    </section>
+
+    <section id="libraryView" class="view" hidden>
+      <div id="libCrumb" class="meta"></div>
+      <div class="grid" id="libGrid"></div>
+    </section>
+
+    <section id="dashboardView" class="view" hidden>
+      <div class="cols">
+        <div>
+          <div class="rowLabel">Services</div>
+          <div id="dashServices" class="items"></div>
+          <div class="rowLabel">Storage</div>
+          <div id="dashStorage" class="items"></div>
+          <div class="rowLabel">Speed</div>
+          <div id="dashSpeed" class="items"></div>
+        </div>
+        <div>
+          <div class="rowLabel">Logs</div>
+          <pre id="dashLogs"></pre>
+        </div>
+      </div>
+    </section>
+
+    <footer id="hint"></footer>
+  </div>
+
+  <div id="subs" hidden></div>
+  <div id="osd" hidden>
+    <div id="osdTitle"></div>
+    <div id="osdInfo"></div>
+    <div class="bar"><i id="osdBar"></i></div>
+    <div id="osdTime"></div>
+  </div>
+  <div id="toast" hidden></div>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

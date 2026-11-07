@@ -30,6 +30,18 @@ var TYPES = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'ima
 var auth = null;
 try { auth = require('./auth.js'); } catch (e) { auth = null; }
 
+// ---------------------------------------------------------------- ring log (read by Dash Server dashboard, loopback only)
+var LOG_MAX = 300;
+var logLines = [];
+function logLine(level, args) {
+  var text = Array.prototype.map.call(args, function (a) { return a instanceof Error ? a.message : typeof a === 'string' ? a : JSON.stringify(a); }).join(' ');
+  logLines.push({ t: Date.now(), l: level, m: text.slice(0, 500) });
+  if (logLines.length > LOG_MAX) logLines.shift();
+}
+var _log = console.log, _err = console.error;
+console.log = function () { logLine('info', arguments); _log.apply(console, arguments); };
+console.error = function () { logLine('error', arguments); _err.apply(console, arguments); };
+
 var server = null;
 var sessions = new Map();   // token -> expiry
 var failures = new Map();   // ip -> {count, until}
@@ -310,6 +322,10 @@ function route(req, res) {
       var sid = sessionOf(req);
       if (sid) sessions.delete(sid);
       return send(res, 200, { ok: true }, null, { 'Set-Cookie': 'sid=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' });
+    }
+    if (m === 'GET' && url === '/api/log') {
+      if (!isLoopback(req)) return send(res, 403, { error: 'forbidden' });
+      return send(res, 200, { lines: logLines }, null, { 'Access-Control-Allow-Origin': '*' });
     }
     if (m === 'GET' && url === '/api/session') {
       return send(res, 200, { loggedIn: !!sessionOf(req), configured: !!auth });

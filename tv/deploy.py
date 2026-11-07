@@ -18,7 +18,7 @@ import xml.etree.ElementTree as ET
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import samsungtv as st  # noqa: E402
 
-APPS = ("homeapp", "torrentapp")
+APPS = ("homeapp", "torrentapp", "serverapp")
 BUILD_ONLY = ("node_modules", "build", "package.json", "package-lock.json", ".DS_Store", "Thumbs.db")
 TIZEN_HOMES = [os.environ.get("TIZEN_STUDIO", ""), os.path.expanduser("~/tizen-studio"), r"C:\tizen-studio"]
 

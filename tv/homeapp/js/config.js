@@ -12,9 +12,10 @@ window.DASH_CONFIG = {
   prayerTimes: { enabled: false, method: 2, school: 0 }, // api.aladhan.com methods; school 1 = Hanafi Asr
 
   // Started with the home screen so torrent downloads resume after the TV turns on (ignored if not installed)
-  backgroundServices: ['DashTorr01.engine'],
+  backgroundServices: ['DashSrv01.core', 'DashTorr01.engine'],
 
   apps: [
+    { name: 'Dash Server', appId: 'DashSrv01.server' },
     { name: 'Torrents', appId: 'DashTorr01.torrent' },
     { name: 'YouTube', appId: '111299001912' },
     { name: 'Netflix', appId: '3201907018807' },

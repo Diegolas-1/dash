@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
-"""HTTPS page the iPhone opens to stream camera frames of the TV screen to this Mac.
+"""Stream photos of the TV screen to tv/camera/frames/latest.jpg (+ rolling history).
 
-  python3 tv/camera/server.py [--port 8443] [--interval 1000]
-
-Open the printed URL on the iPhone (same Wi-Fi), accept the certificate warning,
-allow the camera, and prop the phone up facing the TV. Frames land in
-tv/camera/frames/latest.jpg (+ a rolling history).
+  Laptop webcam:  python tv/camera/server.py --webcam
+                  Opens http://localhost:8443/... in the laptop browser; aim the webcam at the TV.
+  Phone camera:   python tv/camera/server.py
+                  Open the printed https URL on the phone (same Wi-Fi), accept the certificate
+                  warning, allow the camera, prop the phone up facing the TV.
 """
 import argparse
 import http.server
 import os
 import secrets
+import shutil
 import socket
 import ssl
 import subprocess
 import sys
 import time
 import urllib.parse
+import webbrowser
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FRAMES = os.path.join(HERE, "frames")
@@ -36,6 +38,17 @@ def lan_ip():
         s.close()
 
 
+def find_openssl():
+    exe = shutil.which("openssl")
+    if exe:
+        return exe
+    for base in (os.environ.get("ProgramFiles", r"C:\Program Files"), os.environ.get("ProgramFiles(x86)", "")):
+        cand = os.path.join(base, "Git", "usr", "bin", "openssl.exe")
+        if base and os.path.exists(cand):
+            return cand
+    raise SystemExit("openssl not found. Install Git for Windows (includes openssl) or use --webcam.")
+
+
 def ensure_cert(ip):
     os.makedirs(CERTS, exist_ok=True)
     crt, key = os.path.join(CERTS, "cert.pem"), os.path.join(CERTS, "key.pem")
@@ -44,7 +57,7 @@ def ensure_cert(ip):
         with open(stamp) as f:
             if f.read() == ip:
                 return crt, key
-    base = ["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", key, "-out", crt,
+    base = [find_openssl(), "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", key, "-out", crt,
             "-days", "365", "-subj", "/CN=tv-camera"]
     try:
         subprocess.run(base + ["-addext", "subjectAltName=IP:%s" % ip], check=True, capture_output=True)
@@ -126,18 +139,27 @@ def main():
     p.add_argument("--port", type=int, default=8443)
     p.add_argument("--interval", type=int, default=1000, help="ms between frames")
     p.add_argument("--keep", type=int, default=300, help="history frames to keep")
+    p.add_argument("--webcam", action="store_true", help="use this computer's webcam (plain HTTP on localhost)")
     a = p.parse_args()
 
     os.makedirs(HISTORY, exist_ok=True)
-    ip = lan_ip()
-    crt, key = ensure_cert(ip)
     token = secrets.token_urlsafe(12)
-    srv = http.server.ThreadingHTTPServer(("0.0.0.0", a.port), make_handler(token, a.keep, a.interval))
-    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ctx.load_cert_chain(crt, key)
-    srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
-    print("Open on the iPhone:  https://%s:%d/?k=%s" % (ip, a.port, token))
-    print("Latest frame:        %s" % os.path.join(FRAMES, "latest.jpg"))
+    handler = make_handler(token, a.keep, a.interval)
+    if a.webcam:
+        # Browsers allow camera access on http://localhost without a certificate.
+        srv = http.server.ThreadingHTTPServer(("127.0.0.1", a.port), handler)
+        url = "http://localhost:%d/?k=%s" % (a.port, token)
+        print("Webcam page:   %s" % url)
+        webbrowser.open(url)
+    else:
+        ip = lan_ip()
+        crt, key = ensure_cert(ip)
+        srv = http.server.ThreadingHTTPServer(("0.0.0.0", a.port), handler)
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(crt, key)
+        srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
+        print("Open on the phone:  https://%s:%d/?k=%s" % (ip, a.port, token))
+    print("Latest frame:  %s" % os.path.join(FRAMES, "latest.jpg"))
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

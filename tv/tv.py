@@ -148,6 +148,7 @@ def cmd_pair(a):
 
 
 def cmd_key(a):
+    sent = []
     with tv_from(a) as tv:
         for k in a.keys:
             k = k.upper()
@@ -155,7 +156,11 @@ def cmd_key(a):
                 k = "KEY_" + k
             print(k)
             tv.key(k)
+            sent.append(k)
             time.sleep(a.delay)
+    if a.record:
+        path, macro = append_macro(a.record, sent)
+        print("appended to %s (%d steps)" % (os.path.relpath(path, st.HERE), len(macro["steps"])))
     if a.snap:
         time.sleep(1.2)
         print(snapshot(a.snap) or "no camera frame available")
@@ -226,52 +231,88 @@ RECORD_KEYS = {
 RECORD_KEYS.update({str(i): "KEY_%d" % i for i in range(10)})
 
 
-def read_key():
-    ch = sys.stdin.read(1)
-    if ch == "\x1b":
-        ch += sys.stdin.read(2)
-    return ch
+WIN_KEYS = {"H": "\x1b[A", "P": "\x1b[B", "M": "\x1b[C", "K": "\x1b[D"}
+
+
+class RawKeys:
+    """Read single key presses on Windows (msvcrt) or Unix (termios)."""
+
+    def __enter__(self):
+        if os.name == "nt":
+            import msvcrt
+            self.msvcrt = msvcrt
+        else:
+            import termios
+            import tty
+            self.termios = termios
+            self.fd = sys.stdin.fileno()
+            self.old = termios.tcgetattr(self.fd)
+            tty.setraw(self.fd)
+        return self
+
+    def __exit__(self, *exc):
+        if os.name != "nt":
+            self.termios.tcsetattr(self.fd, self.termios.TCSADRAIN, self.old)
+
+    def read(self):
+        if os.name == "nt":
+            ch = self.msvcrt.getwch()
+            if ch in ("\x00", "\xe0"):
+                return WIN_KEYS.get(self.msvcrt.getwch(), "")
+            return "\x7f" if ch == "\x08" else ch
+        ch = sys.stdin.read(1)
+        if ch == "\x1b":
+            ch += sys.stdin.read(2)
+        return ch
+
+
+def append_macro(name, keys, description=""):
+    path = macro_path(name)
+    macro = load_json(path, {"name": name, "description": description, "delay": 0.8, "steps": []})
+    macro["steps"].extend(keys)
+    if description:
+        macro["description"] = description
+    macro["recorded"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    save_json(path, macro)
+    return path, macro
 
 
 def cmd_record(a):
-    import termios
-    import tty
-
-    path = macro_path(a.name)
     steps = []
     print("Recording '%s'. Keys are sent to the TV live.\n"
           "  arrows=move  Enter=OK  Backspace/b=Back  h=Home  m=Menu  x=Exit  s=Source  t=Tools  0-9\n"
           "  w=insert 2s wait  u=drop last step (not sent)  q=save  Ctrl-C=abort" % a.name)
-    fd = sys.stdin.fileno()
-    old = termios.tcgetattr(fd)
-    with tv_from(a) as tv:
-        try:
-            tty.setraw(fd)
-            while True:
-                k = read_key()
-                if k == "\x03":
-                    raise KeyboardInterrupt
-                if k == "q":
-                    break
-                if k == "w":
-                    steps.append({"wait": 2})
-                    sys.stdout.write("wait 2s\r\n")
-                elif k == "u" and steps:
-                    sys.stdout.write("dropped %s\r\n" % json.dumps(steps.pop()))
-                elif k in RECORD_KEYS:
-                    tv.key(RECORD_KEYS[k])
-                    steps.append(RECORD_KEYS[k])
-                    sys.stdout.write("%s\r\n" % RECORD_KEYS[k])
-                sys.stdout.flush()
-        except KeyboardInterrupt:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old)
-            raise SystemExit("\naborted, nothing saved")
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old)
-    macro = {"name": a.name, "description": a.description or "", "delay": a.delay, "steps": steps,
-             "recorded": time.strftime("%Y-%m-%d %H:%M:%S")}
+    with tv_from(a) as tv, RawKeys() as kb:
+        while True:
+            k = kb.read()
+            if k == "\x03":
+                raise SystemExit("\r\naborted, nothing saved")
+            if k == "q":
+                break
+            if k == "w":
+                steps.append({"wait": 2})
+                sys.stdout.write("wait 2s\r\n")
+            elif k == "u" and steps:
+                sys.stdout.write("dropped %s\r\n" % json.dumps(steps.pop()))
+            elif k in RECORD_KEYS:
+                tv.key(RECORD_KEYS[k])
+                steps.append(RECORD_KEYS[k])
+                sys.stdout.write("%s\r\n" % RECORD_KEYS[k])
+            sys.stdout.flush()
+    if os.path.exists(macro_path(a.name)):
+        os.remove(macro_path(a.name))
+    path, macro = append_macro(a.name, steps, a.description or "")
+    macro["delay"] = a.delay
     save_json(path, macro)
     print("Saved %s (%d steps)" % (os.path.relpath(path, st.HERE), len(steps)))
+
+
+def cmd_save_macro(a):
+    keys = [k.upper() if k.upper().startswith("KEY_") else "KEY_" + k.upper() for k in a.keys]
+    if a.replace and os.path.exists(macro_path(a.name)):
+        os.remove(macro_path(a.name))
+    path, macro = append_macro(a.name, keys, a.description or "")
+    print("%s: %d steps" % (os.path.relpath(path, st.HERE), len(macro["steps"])))
 
 
 def cmd_play(a):
@@ -356,6 +397,7 @@ def main():
     s.add_argument("keys", nargs="+")
     s.add_argument("--delay", type=float, default=0.6)
     s.add_argument("--snap", metavar="LABEL", help="save a camera photo afterwards")
+    s.add_argument("--record", metavar="MACRO", help="also append these keys to a macro")
     s.set_defaults(fn=cmd_key)
 
     s = sub.add_parser("apps", help="list installed apps")
@@ -389,6 +431,13 @@ def main():
     s.add_argument("--description", "-d")
     s.add_argument("--delay", type=float, default=0.8)
     s.set_defaults(fn=cmd_record)
+
+    s = sub.add_parser("save-macro", help="write a macro without a keyboard: save-macro undo-x MENU DOWN ENTER")
+    s.add_argument("name")
+    s.add_argument("keys", nargs="+")
+    s.add_argument("--description", "-d")
+    s.add_argument("--replace", action="store_true", help="overwrite instead of append")
+    s.set_defaults(fn=cmd_save_macro)
 
     s = sub.add_parser("play", help="play a key macro")
     s.add_argument("name")

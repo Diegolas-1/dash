@@ -53,12 +53,26 @@ final class AppState: ObservableObject {
         hapticsOn = defaults.object(forKey: "haptics") as? Bool ?? true
         remote.onStatus = { [weak self] s in Task { @MainActor in self?.status = s } }
         remote.onToken = { [weak self] t in Task { @MainActor in self?.token = t } }
+        if CommandLine.arguments.contains("-demo") {
+            // Sample state for screenshots in the simulator (no TV on that network).
+            demo = true
+            tvIP = "192.168.1.40"; tvName = "Living Room TV"; tvMAC = "AA:BB:CC:DD:EE:FF"; token = "demo"
+            status = .connected
+            info = TVInfo(ip: tvIP, name: tvName, model: "QN65Q70CAFXZA", mac: tvMAC, os: "Tizen", developerMode: true)
+            services = [ServiceStatus(name: "Photos", port: 8090, up: true), ServiceStatus(name: "Torrents", port: 8091, up: true), ServiceStatus(name: "Dash Server", port: 8092, up: true)]
+            return
+        }
         if !tvIP.isEmpty { connect() }
     }
+
+    /// True when launched with -demo (screenshots); network calls are skipped.
+    private(set) var demo = false
+    var initialTab: String { if let i = CommandLine.arguments.firstIndex(of: "-tab"), i + 1 < CommandLine.arguments.count { return CommandLine.arguments[i + 1] }; return "remote" }
 
     var hasTV: Bool { !tvIP.isEmpty }
 
     func connect() {
+        if demo { status = .connected; return }
         guard hasTV else { status = .failed("Choose your TV in Settings first."); return }
         remote.connect(ip: tvIP, token: token.isEmpty ? nil : token)
         Task { await refreshInfo() }
@@ -70,6 +84,7 @@ final class AppState: ObservableObject {
 
     func sendKey(_ key: String) {
         if hapticsOn { impact.impactOccurred() }
+        if demo { return }
         if !remote.isOpen { connect() }
         remote.sendKey(key)
     }
@@ -94,7 +109,7 @@ final class AppState: ObservableObject {
     }
 
     func refreshInfo() async {
-        guard hasTV else { return }
+        guard hasTV, !demo else { return }
         if let tv = await Discovery.deviceInfo(ip: tvIP, timeout: 2.5) {
             info = tv
             tvName = tv.name
@@ -126,15 +141,17 @@ final class AppState: ObservableObject {
 
 struct RootView: View {
     @EnvironmentObject var app: AppState
+    @State private var tab = "remote"
 
     var body: some View {
-        TabView {
-            RemoteView().tabItem { Label("Remote", systemImage: "av.remote") }
-            KeyboardView().tabItem { Label("Keyboard", systemImage: "keyboard") }
-            WebTabView().tabItem { Label("Dash", systemImage: "rectangle.on.rectangle") }
-            SetupView().tabItem { Label("Setup", systemImage: "checklist") }
-            SettingsView().tabItem { Label("Settings", systemImage: "gearshape") }
+        TabView(selection: $tab) {
+            RemoteView().tabItem { Label("Remote", systemImage: "av.remote") }.tag("remote")
+            KeyboardView().tabItem { Label("Keyboard", systemImage: "keyboard") }.tag("keyboard")
+            WebTabView().tabItem { Label("Dash", systemImage: "rectangle.on.rectangle") }.tag("dash")
+            SetupView().tabItem { Label("Setup", systemImage: "checklist") }.tag("setup")
+            SettingsView().tabItem { Label("Settings", systemImage: "gearshape") }.tag("settings")
         }
+        .onAppear { tab = app.initialTab }
         .background(Theme.bg.ignoresSafeArea())
         .alert(item: Binding(get: { app.notice.map { NoticeItem(text: $0) } }, set: { _ in app.notice = nil })) { item in
             Alert(title: Text(item.text))

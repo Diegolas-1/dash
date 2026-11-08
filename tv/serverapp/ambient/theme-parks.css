@@ -100,11 +100,14 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 #wCurve .sunLbl { fill: var(--cream-2); font-family: var(--serif); font-style: italic; font-size: 13px; }
 
 /* ---------- right column: trail-sign plaques ---------- */
-.column { grid-area: column; align-self: stretch; display: flex; flex-direction: column; gap: 12px; min-height: 0; max-height: 100%; overflow: hidden; }
+/* The sidebar hangs off the poster frame: flush with the top and right rules, resting on the caption band. */
+#stage .column { position: absolute; top: 33px; right: 33px; bottom: 280px; width: 470px; display: flex; flex-direction: column; gap: 0; min-height: 0; overflow: hidden;
+  background: var(--art-dark); opacity: 0.92; border-left: 3px double var(--cream-2); box-shadow: -14px 0 34px rgba(0,0,0,.25); transition: background var(--t-slow); }
 .panel.rotate { flex-shrink: 4; }   /* gives way first when the column is tight */
-.panel.lights { flex-shrink: 0; }
-.panel { background: var(--art-dark); opacity: 0.92; border: 2px solid var(--cream-2); padding: 16px 20px 18px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,.25); transition: background var(--t-slow); flex: 0 1 auto; min-height: 0; }
-.panel::after { content: ""; position: absolute; inset: 5px; border: 1px solid var(--cream-3); pointer-events: none; }
+.panel.lights { flex: 1 0 auto; }   /* the bottom plaque stretches down to the band */
+.panel { background: transparent; border: 0; border-top: 1px solid var(--cream-3); padding: 18px 22px 20px; position: relative; box-shadow: none; flex: 0 1 auto; min-height: 0; }
+.panel:first-child { border-top: 0; }
+.panel::after { display: none; }
 .eyebrow { font-family: var(--display); font-weight: 700; font-size: 19px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--art-accent); margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
 .eyebrow .live { width: 8px; height: 8px; border-radius: 50%; background: var(--good); display: inline-block; animation: blink 4s ease-in-out infinite; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
@@ -180,7 +183,7 @@ body[data-mode="sleep"] #backdrop, body[data-mode="sleep"] #stage { opacity: 0; 
 #sleepClock { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; color: rgba(230, 217, 188, 0.42); font-family: var(--display); font-weight: 700; }
 #sleepClock #sleepTime { display: block; font-size: 128px; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
 #sleepClock #sleepDate { display: block; margin-top: 12px; font-family: var(--serif); font-style: italic; font-size: 22px; letter-spacing: 0.08em; color: rgba(230, 217, 188, 0.3); }
-#demoTag { position: absolute; right: 48px; top: 48px; z-index: 3; font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--cream-2); border: 1px solid var(--cream-3); padding: 5px 10px; }
+#demoTag { position: absolute; left: 70px; top: 196px; z-index: 3; font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--cream-2); border: 1px solid var(--cream-3); padding: 5px 10px; }
 .panel.rotate.squeezed { display: none; }
 body.plain #stage > :not(.clockBlock), body.plain .weather > *, body.plain #stage::after, body.plain #stage::before, body.plain #demoTag { opacity: 0 !important; transition: opacity 1s; }
 body.plain .clockBlock { transition: opacity 1s; }

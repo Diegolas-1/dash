@@ -99,6 +99,17 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 #wCurve .sun { stroke: var(--art-accent); stroke-width: 2; }
 #wCurve .sunLbl { fill: var(--cream-2); font-family: var(--serif); font-style: italic; font-size: 13px; }
 
+/* ---------- nav bar: docked to the frame (left), the sidebar (right) and the band (below) ---------- */
+#stage .navbar { position: absolute; left: 33px; right: 503px; bottom: 274px; height: 92px; z-index: 1; display: flex; align-items: stretch; gap: 0;
+  background: var(--art-dark); opacity: 0.92; border-top: 3px solid var(--cream-2); box-shadow: 0 -12px 30px rgba(0,0,0,.2); transition: background var(--t-slow); }
+.navItem { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-width: 128px; padding: 0 18px 6px; border-right: 1px solid var(--cream-3);
+  color: var(--cream-2); transition: color .25s, background .25s; }
+.navItem .nic { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.navItem .nlabel { font-family: var(--display); font-weight: 700; font-size: 15px; letter-spacing: 0.16em; text-transform: uppercase; }
+.navItem.focus { color: var(--art-dark); background: var(--art-accent); }
+.navTip { flex: 1; align-self: center; text-align: right; padding: 0 22px; font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--cream-2); }
+#wCurve { margin-bottom: 104px; }   /* keep the trail profile above the nav bar */
+
 /* ---------- right column: trail-sign plaques ---------- */
 /* The sidebar hangs off the poster frame: flush with the top and right rules, resting on the caption band. */
 #stage .column { position: absolute; top: 33px; right: 33px; bottom: 274px; width: 470px; z-index: 1; display: flex; flex-direction: column; gap: 0; min-height: 0; overflow: hidden;

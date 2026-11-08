@@ -30,6 +30,17 @@ window.AMBIENT_CONFIG = {
   },
   // icons: bulb lamp floor-lamp strip ceiling spot desk bed couch kitchen tv plug fan candle string door bath plant
 
+  nav: [                              // nav bar (parks theme). actions: app:<tizen app id> | view:<home|library|dashboard> | theme | mode | lights | rescan | art | speed
+    { label: 'Home screen', icon: 'home', action: 'app:DashHome01.home' },
+    { label: 'Library', icon: 'library', action: 'view:library' },
+    { label: 'Dashboard', icon: 'dashboard', action: 'view:dashboard' },
+    { label: 'Torrents', icon: 'torrents', action: 'app:DashTorr01.torrent' },
+    { label: 'Photos', icon: 'photos', action: 'app:DashHome01.home' },
+    { label: 'Theme', icon: 'theme', action: 'theme' },
+    { label: 'Mode', icon: 'mode', action: 'mode' },
+    { label: 'Rescan', icon: 'rescan', action: 'rescan' }
+  ],
+
   calendarIcsUrl: '',                 // optional: a private iCal address (Google Calendar: Settings > Integrate > Secret address)
   prayerTimes: { enabled: false, method: 2, school: 0 }
 };

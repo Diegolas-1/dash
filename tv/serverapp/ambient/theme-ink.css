@@ -182,4 +182,5 @@ body[data-mode="sleep"] #backdrop, body[data-mode="sleep"] #stage { opacity: 0; 
 .panel.rotate.squeezed { display: none; }
 body.plain #stage > :not(.clockBlock), body.plain .weather > *, body.plain #stage::after, body.plain #stage::before, body.plain #demoTag { opacity: 0 !important; transition: opacity 1s; }
 body.plain .clockBlock { transition: opacity 1s; }
+.navbar { display: none; }
 [hidden] { display: none !important; }

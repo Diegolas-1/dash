@@ -606,7 +606,8 @@
   tickClock(); setInterval(tickClock, 15000);
   sendStorageHints(); sendSystemHints();
   setInterval(sendStorageHints, 30000); setInterval(sendSystemHints, 60000);
-  setView('home');
+  setView(['home', 'library', 'dashboard'].indexOf(location.hash.slice(1)) >= 0 ? location.hash.slice(1) : 'home');
+  if (location.hash) history.replaceState(null, '', location.pathname);
   setTimeout(function () { loadLib(false); loadDash(true); }, hasTizen ? 1200 : 0);
   setInterval(function () { if (document.hidden) return; pollRemote(); if (S.playing) reportPlayer(); }, 2000);
   setInterval(function () { if (document.hidden) return; if (!S.playing) loadDash(S.view === 'dashboard'); }, 10000);

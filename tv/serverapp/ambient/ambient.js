@@ -12,7 +12,8 @@
 
   var S = { weather: null, dash: null, player: null, library: null, torrents: null, photos: [], photoIdx: -1, photoLayer: 0, art: null, artIdx: -1,
     calendar: null, prayer: null, demo: false, coreFails: 0, rotIdx: 0, mode: '', shift: 0,
-    lights: null, lf: { idx: 0, armed: false, adjust: false, timer: null }, pending: {}, enterDown: 0, enterHeld: false };
+    lights: null, lf: { idx: 0, armed: false, adjust: false, timer: null }, pending: {}, enterDown: 0, enterHeld: false,
+    region: 'nav', nav: { idx: 0 } };
 
   // ------------------------------------------------------------ utils
 
@@ -403,6 +404,48 @@
     if (advance) { body.classList.add('fade'); setTimeout(function () { draw(); body.classList.remove('fade'); }, 900); } else draw();
   }
 
+  // ------------------------------------------------------------ nav bar
+
+  var NAV = (C.nav || []).slice();
+  function renderNav() {
+    var bar = $('navbar');
+    if (!NAV.length) { bar.hidden = true; return; }
+    bar.hidden = false; bar.textContent = '';
+    NAV.forEach(function (item, i) {
+      var b = el('div', 'navItem' + (S.lf.armed && S.region === 'nav' && i === S.nav.idx ? ' focus' : ''));
+      var ic = document.createElementNS(SVG, 'svg'); ic.setAttribute('class', 'nic'); useIcon(ic, 'n-' + (item.icon || 'home')); b.appendChild(ic);
+      b.appendChild(el('span', 'nlabel', item.label));
+      bar.appendChild(b);
+    });
+    var tip = el('div', 'navTip', S.lf.armed && S.region === 'nav' ? (NAV[S.nav.idx] && NAV[S.nav.idx].hint || 'OK: open  ·  Up: lights  ·  Return: done') : '');
+    bar.appendChild(tip);
+  }
+  function launchApp(appId) {
+    if (typeof window.tizen === 'undefined') { flash('Would open ' + appId); return; }
+    tizen.application.launch(appId, function () {}, function () { flash('Not installed: ' + appId); });
+  }
+  function flash(msg) { var t = $('navbar').querySelector('.navTip'); if (t) t.textContent = msg; }
+  function runNav(item) {
+    var a = String(item.action || ''), arg = a.indexOf(':') > 0 ? a.slice(a.indexOf(':') + 1) : '';
+    if (a.indexOf('app:') === 0) return launchApp(arg);
+    if (a.indexOf('view:') === 0) { if (STANDALONE) return flash('Dash Server is not available here'); location.href = '../index.html#' + arg; return; }
+    if (a === 'theme') { var i = THEMES.indexOf(THEME); return setTheme(THEMES[(i + 1) % THEMES.length]); }
+    if (a === 'mode') return modeOverride();
+    if (a === 'lights') { S.region = 'lights'; armLights(); renderLights(); renderNav(); return; }
+    if (a === 'rescan') { flash('Rescanning drives…'); var x = new XMLHttpRequest(); x.open('POST', C.services.core + '/api/library/rescan'); x.setRequestHeader('Content-Type', 'application/json'); x.onload = function () { flash('Rescan started'); loadCore(); }; x.onerror = function () { flash('Service not reachable'); }; x.send('{}'); return; }
+    if (a === 'art') { if (ART_PACK) nextArt(); else nextPhoto(); return; }
+    if (a === 'speed') { flash('Speed test running (about 20 s)…'); var y = new XMLHttpRequest(); y.open('POST', C.services.core + '/api/speedtest'); y.setRequestHeader('Content-Type', 'application/json'); y.onload = function () { loadCore(); flash('Speed test done'); }; y.onerror = function () { flash('Service not reachable'); }; y.send('{}'); return; }
+  }
+  function navKey(k) {
+    if (!NAV.length) return false;
+    if (k === 37 || k === 39) { if (S.lf.armed) S.nav.idx = (S.nav.idx + (k === 39 ? 1 : -1) + NAV.length) % NAV.length; armLights(); renderNav(); return true; }
+    if (k === 38) { if (!$('pLights').hidden) { S.region = 'lights'; armLights(); renderLights(); renderNav(); } return true; }
+    if (k === 40) { armLights(); renderNav(); return true; }
+    if (k === 13) { if (!S.lf.armed) { armLights(); renderNav(); return true; } runNav(NAV[S.nav.idx]); armLights(); return true; }
+    if (k === 10009 || k === 27) { if (S.lf.armed) { S.lf.armed = false; clearTimeout(S.lf.timer); renderNav(); renderLights(); return true; } return false; }
+    return false;
+  }
+
   // ------------------------------------------------------------ lights (switch bay)
 
   var LC = C.lights || {};
@@ -442,7 +485,7 @@
     bay.textContent = '';
     S.lf.idx = Math.max(0, Math.min(S.lf.idx, list.length - 1));
     list.forEach(function (t, i) {
-      var sw = el('div', 'sw' + (t.on ? ' on' : '') + (t.group ? ' grp' : '') + (t.offline ? ' off' : '') + (S.lf.armed && i === S.lf.idx ? (S.lf.adjust ? ' focus adjust' : ' focus') : ''));
+      var sw = el('div', 'sw' + (t.on ? ' on' : '') + (t.group ? ' grp' : '') + (t.offline ? ' off' : '') + (S.lf.armed && S.region === 'lights' && i === S.lf.idx ? (S.lf.adjust ? ' focus adjust' : ' focus') : ''));
       sw.setAttribute('data-key', t.key);
       var rocker = el('div', 'rocker');
       var lvl = el('i', 'lvl'); lvl.style.height = (t.on ? t.brightness : 0) + '%'; lvl.style.background = t.color; rocker.appendChild(lvl);
@@ -453,13 +496,13 @@
       bay.appendChild(sw);
     });
     var hint = $('lightsHint');
-    hint.textContent = !S.lf.armed ? '' : S.lf.adjust ? 'Up / Down: brightness  ·  Back: done' : 'OK: on/off  ·  hold OK: brightness';
+    hint.textContent = !(S.lf.armed && S.region === 'lights') ? '' : S.lf.adjust ? 'Up / Down: brightness  ·  Return: done' : 'OK: on/off  ·  hold OK: brightness  ·  Down: menu';
     if (S.lights && S.lights.error && S.lights.provider === 'govee') hint.textContent = 'Govee: ' + S.lights.error;
   }
   function armLights() {
     S.lf.armed = true;
     clearTimeout(S.lf.timer);
-    S.lf.timer = setTimeout(function () { S.lf.armed = false; S.lf.adjust = false; renderLights(); }, 9000);
+    S.lf.timer = setTimeout(function () { S.lf.armed = false; S.lf.adjust = false; renderLights(); renderNav(); }, 9000);
   }
   function currentTile() { var list = tiles(); return list[S.lf.idx] || null; }
   function setLight(dev, patch) {
@@ -492,9 +535,13 @@
       if (S.lf.armed) { var n = tiles().length; S.lf.idx = (S.lf.idx + (k === 39 ? 1 : -1) + n) % n; }
       S.lf.adjust = false; armLights(); renderLights(); return true;
     }
-    if (k === 38 || k === 40) {                                           // up / down: brightness (in adjust mode)
+    if (k === 38 || k === 40) {                                           // up / down: brightness (in adjust mode), else hop to the nav bar
       if (!S.lf.armed) { armLights(); renderLights(); return true; }
-      if (!S.lf.adjust) { S.lf.adjust = true; }
+      if (!S.lf.adjust) {
+        if (k === 40 && NAV.length) { S.region = 'nav'; armLights(); renderLights(); renderNav(); return true; }
+        if (k === 38) return true;
+        S.lf.adjust = true;
+      }
       nudgeTile(t, k === 38 ? (LC.step || 10) : -(LC.step || 10)); armLights(); return true;
     }
     if (k === 13) return true;                                            // enter handled on keyup (click vs hold)
@@ -602,21 +649,24 @@
     return false;
   }
   var LIGHT_KEYS = [13, 37, 38, 39, 40, 10009, 27];
+  function lightsActive() { return !$('pLights').hidden && (S.region === 'lights' || !NAV.length); }
   document.addEventListener('keydown', function (e) {
     var k = e.keyCode;
     if (LIGHT_KEYS.indexOf(k) < 0) { if (extraKey(k)) e.preventDefault(); return; }
     e.preventDefault();
-    if (!$('pLights').hidden) {
+    if (lightsActive()) {
       if (k === 13) { enterPress(true, e); return; }
       if (lightsKey(e)) return;
-    }
+    } else if (NAV.length && navKey(k)) return;
     if (k === 10009 || k === 27 || !S.lf.armed) leave();
   });
-  document.addEventListener('keyup', function (e) { if (e.keyCode === 13 && !$('pLights').hidden) enterPress(false, e); });
+  document.addEventListener('keyup', function (e) { if (e.keyCode === 13 && lightsActive()) enterPress(false, e); });
   document.addEventListener('click', function () { if ($('pLights').hidden) leave(); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { tick(); loadCore(); loadWeather(); } });
 
   R.register();
+  if (!NAV.length) S.region = 'lights';
+  renderNav();
   tick(); setInterval(tick, 1000);
   setInterval(pixelShift, 90000);
   loadWeather(); setInterval(loadWeather, 20 * 60000);

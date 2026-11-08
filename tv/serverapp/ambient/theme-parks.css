@@ -32,7 +32,7 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 .vignette { background: linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.18) 16%, transparent 30%, transparent 60%, rgba(0,0,0,0.25)); }
 
 /* poster frame: double rule inset from the edge */
-#stage::before { content: ""; position: absolute; inset: 30px; border: 3px double var(--cream-2); pointer-events: none; z-index: 1; transition: border-color var(--t-slow); }
+#stage::before { content: ""; position: absolute; inset: 30px; border: 3px solid var(--cream-2); pointer-events: none; z-index: 1; transition: border-color var(--t-slow); }
 /* caption band */
 #stage::after { content: ""; position: absolute; left: 30px; right: 30px; bottom: 30px; height: 250px; z-index: 2; background: var(--art-dark); opacity: var(--band-alpha); border: 3px solid var(--cream-2); transition: background var(--t-slow); }
 

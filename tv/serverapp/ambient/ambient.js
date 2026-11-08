@@ -251,9 +251,8 @@
       root.setProperty('--art-dominant', pick.dominant);
       var cap = $('artCaption'); cap.classList.add('swap');
       setTimeout(function () {
-        var el = $('artPark'), avail = $('artCaption').clientWidth || 560;
-        el.style.fontSize = Math.max(54, Math.min(112, Math.floor(avail / (pick.park.length * 0.5)))) + 'px';
-        el.textContent = pick.park; $('artState').textContent = pick.state; cap.classList.remove('swap');
+        $('artPark').textContent = pick.park === 'American Samoa' ? 'National Park of American Samoa' : pick.park + ' National Park';
+        $('artState').textContent = pick.state; cap.classList.remove('swap');
       }, 900);
     };
     img.src = 'art/' + ART_PACK + '/' + pick.file;

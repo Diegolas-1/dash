@@ -238,6 +238,8 @@ RECORD_KEYS = {
     "\r": "KEY_ENTER", "\n": "KEY_ENTER", "\x7f": "KEY_RETURN", "b": "KEY_RETURN",
     "h": "KEY_HOME", "m": "KEY_MENU", "x": "KEY_EXIT", "s": "KEY_SOURCE", "t": "KEY_TOOLS",
     "+": "KEY_VOLUP", "-": "KEY_VOLDOWN", "p": "KEY_POWER",
+    "i": "KEY_INFO", "g": "KEY_GUIDE", "l": "KEY_CH_LIST", "c": "KEY_CAPTION", "]": "KEY_CHUP", "[": "KEY_CHDOWN", "v": "KEY_PRECH",
+    "r": "KEY_RED", "n": "KEY_GREEN", "y": "KEY_YELLOW", "d": "KEY_BLUE",
 }
 RECORD_KEYS.update({str(i): "KEY_%d" % i for i in range(10)})
 
@@ -292,6 +294,7 @@ def cmd_record(a):
     steps = []
     print("Recording '%s'. Keys are sent to the TV live.\n"
           "  arrows=move  Enter=OK  Backspace/b=Back  h=Home  m=Menu  x=Exit  s=Source  t=Tools  0-9\n"
+          "  i=Info g=Guide l=CH LIST c=CC/VD ]=CH up [=CH down v=PRE-CH  r/n/y/d = A B C D (red green yellow blue)\n"
           "  w=insert 2s wait  u=drop last step (not sent)  q=save  Ctrl-C=abort" % a.name)
     with tv_from(a) as tv, RawKeys() as kb:
         while True:

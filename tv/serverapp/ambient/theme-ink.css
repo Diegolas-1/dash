@@ -180,4 +180,6 @@ body[data-mode="sleep"] #backdrop, body[data-mode="sleep"] #stage { opacity: 0; 
 #demoTag { position: absolute; right: 24px; bottom: 18px; font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; }
 .artCaption { display: none; }
 .panel.rotate.squeezed { display: none; }
+body.plain #stage > :not(.clockBlock), body.plain .weather > *, body.plain #stage::after, body.plain #stage::before, body.plain #demoTag { opacity: 0 !important; transition: opacity 1s; }
+body.plain .clockBlock { transition: opacity 1s; }
 [hidden] { display: none !important; }

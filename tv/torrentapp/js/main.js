@@ -93,6 +93,10 @@
 
   // ------------------------------------------------------------ engine / storage
 
+  function launchApp(appId, name) {
+    if (!hasTizen) return toast('Would open ' + name);
+    tizen.application.launch(appId, function () {}, function () { toast(name + ' is not installed'); });
+  }
   function startService() {
     if (!hasTizen) return;
     try {
@@ -380,12 +384,9 @@
 
   // ------------------------------------------------------------ input
 
-  function registerKeys() {
-    if (!hasTizen || !tizen.tvinputdevice) return;
-    ['MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaStop', 'MediaFastForward', 'MediaRewind'].forEach(function (k) {
-      try { tizen.tvinputdevice.registerKey(k); } catch (e) { /* unsupported */ }
-    });
-  }
+  var R = window.Remote || { KEY: {}, register: function () {}, digit: function () { return -1; } };
+  function registerKeys() { R.register(); }
+  function hideApp() { if (hasTizen) { try { tizen.application.getCurrentApplication().hide(); } catch (e) { /* ignore */ } } }
 
   function back() {
     if (S.playing) { stopPlayback(); return; }
@@ -413,8 +414,8 @@
         case KEY.RIGHT: seek(10); break;
         case KEY.RW: seek(-60); break;
         case KEY.FF: seek(60); break;
-        case KEY.UP: case KEY.DOWN: showOsd(); break;
-        case KEY.STOP: case KEY.BACK: case KEY.ESC: stopPlayback(); break;
+        case KEY.UP: case KEY.DOWN: case R.KEY.INFO: showOsd(); break;
+        case KEY.STOP: case KEY.BACK: case KEY.ESC: case R.KEY.EXIT: stopPlayback(); break;
         default: return;
       }
       e.preventDefault();
@@ -425,6 +426,11 @@
       case KEY.DOWN: case KEY.RIGHT: S.sel = Math.min(S.items.length - 1, S.sel + 1); highlight(); break;
       case KEY.ENTER: { var it = S.items[S.sel]; if (it && it.action) it.action(); break; }
       case KEY.BACK: case KEY.ESC: back(); break;
+      case R.KEY.CH_UP: S.sel = Math.max(0, S.sel - 5); highlight(); break;                   // page through long lists
+      case R.KEY.CH_DOWN: S.sel = Math.min(S.items.length - 1, S.sel + 5); highlight(); break;
+      case R.KEY.INFO: { var cur = S.items[S.sel]; if (cur) toast(cur.el.innerText.replace(/\s*\n\s*/g, '  ·  ')); break; }
+      case R.KEY.GUIDE: launchApp('DashSrv01.server', 'Dash Server'); break;
+      case R.KEY.EXIT: hideApp(); break;
       default: return;
     }
     e.preventDefault();

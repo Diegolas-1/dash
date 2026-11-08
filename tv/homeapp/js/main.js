@@ -282,12 +282,9 @@
 
   // ------------------------------------------------------------ input
 
-  function registerKeys() {
-    if (!hasTizen || !tizen.tvinputdevice) return;
-    ['ColorF0Red', 'ColorF1Green', 'ColorF2Yellow', 'ColorF3Blue'].forEach(function (k) {
-      try { tizen.tvinputdevice.registerKey(k); } catch (e) { /* unsupported key */ }
-    });
-  }
+  var R = window.Remote || { KEY: {}, register: function () {}, digit: function () { return -1; } };
+  function registerKeys() { R.register(); }
+  function hideApp() { if (hasTizen) { try { tizen.application.getCurrentApplication().hide(); } catch (e) { /* ignore */ } } }
   document.addEventListener('keydown', function (e) {
     state.lastInput = Date.now();
     if (state.saver) {
@@ -309,10 +306,19 @@
       case KEY.GREEN: nextPhoto(); restartPhotoTimer(); break;
       case KEY.YELLOW: setSaver(true); break;
       case KEY.BLUE: loadPhotos(); toast('Reloading photos'); break;
+      case R.KEY.CH_UP: case R.KEY.CH_DOWN: case R.KEY.PRE_CH: nextPhoto(); restartPhotoTimer(); break;
+      case R.KEY.INFO: document.body.classList.toggle('plain'); break;                       // photos only, no overlay
+      case R.KEY.GUIDE: launchApp({ name: 'Dash Server', appId: 'DashSrv01.server' }); break;
+      case R.KEY.EXIT: hideApp(); break;
       case KEY.BACK:
         if (hasTizen) { try { tizen.application.getCurrentApplication().hide(); } catch (err) { /* ignore */ } }
         break;
-      default: return;
+      default: {
+        var d = R.digit(e.keyCode);
+        if (d >= 1 && d <= 9) { var app = C.apps[d - 1]; if (app) launchApp(app); else toast('No app on ' + d); break; }
+        if (d === 0) { setSaver(true); break; }
+        return;
+      }
     }
     e.preventDefault();
   });

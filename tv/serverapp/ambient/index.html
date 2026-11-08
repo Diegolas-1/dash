@@ -8,8 +8,9 @@
   <script src="config.js"></script>
   <script>
     (function () {
-      var m = /[?&]theme=([a-z]+)/.exec(location.search);
-      var theme = (m && m[1]) || (window.AMBIENT_CONFIG && window.AMBIENT_CONFIG.theme) || 'ink';
+      var m = /[?&]theme=([a-z]+)/.exec(location.search), saved = null;
+      try { saved = localStorage.getItem('ambientTheme'); } catch (e) { /* storage blocked */ }
+      var theme = (m && m[1]) || saved || (window.AMBIENT_CONFIG && window.AMBIENT_CONFIG.theme) || 'ink';
       if (['ink', 'poster', 'parks'].indexOf(theme) < 0) theme = 'ink';
       document.write('<link rel="stylesheet" href="theme-' + theme + '.css">');
       document.documentElement.setAttribute('data-theme', theme);
@@ -117,6 +118,7 @@
   <div id="sleepClock" hidden><span id="sleepTime"></span><span id="sleepDate"></span></div>
   <div id="demoTag" hidden>preview data</div>
 
+  <script src="remote.js"></script>
   <script src="art/parks/manifest.js"></script>
   <script src="ambient.js"></script>
 </body>

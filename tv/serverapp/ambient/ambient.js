@@ -64,7 +64,7 @@
     $('greeting').textContent = g + (C.greetingName ? ', ' + C.greetingName : '');
     $('sleepTime').textContent = c.h + ':' + c.m;
     $('sleepDate').textContent = DAYS[d.getDay()] + ' · ' + MONTHS[d.getMonth()] + ' ' + d.getDate();
-    var mode = inWindow(d, C.sleep) ? 'sleep' : inWindow(d, C.night) ? 'night' : 'day';
+    var mode = S.forceMode || (inWindow(d, C.sleep) ? 'sleep' : inWindow(d, C.night) ? 'night' : 'day');
     if (mode !== S.mode) { S.mode = mode; document.body.setAttribute('data-mode', mode); $('sleepClock').hidden = mode !== 'sleep'; }
   }
 
@@ -564,10 +564,47 @@
   // ------------------------------------------------------------ input & boot
 
   function leave() { if (STANDALONE) return; location.href = '../index.html'; }
+  var R = window.Remote || { KEY: {}, digit: function () { return -1; }, isMedia: function () { return false; }, register: function () {} };
+  var RK = R.KEY;
+  var THEMES = ['ink', 'poster', 'parks'];
+  function setTheme(name) {
+    try { if (name) localStorage.setItem('ambientTheme', name); else localStorage.removeItem('ambientTheme'); } catch (e) { /* storage blocked */ }
+    var url = location.pathname + location.search.replace(/([?&])theme=[a-z]+&?/, '$1').replace(/[?&]$/, '');
+    location.replace(url);
+  }
+  function remoteCmd(cmd, extra) {
+    var x = new XMLHttpRequest(); x.open('POST', C.services.core + '/api/remote'); x.setRequestHeader('Content-Type', 'application/json');
+    x.send(JSON.stringify(Object.assign({ cmd: cmd }, extra || {})));
+  }
+  function modeOverride() {   // Red cycles: automatic -> night -> day -> automatic
+    var order = [null, 'night', 'day'], i = order.indexOf(S.forceMode || null);
+    S.forceMode = order[(i + 1) % order.length];
+    tick();
+  }
+  function extraKey(k) {
+    var d = R.digit(k);
+    if (d >= 1 && d <= THEMES.length) { setTheme(THEMES[d - 1]); return true; }
+    if (d === 0) { setTheme(null); return true; }
+    if (k === RK.INFO) { document.body.classList.toggle('plain'); return true; }                 // art only
+    if (k === RK.CH_UP || k === RK.CH_DOWN || k === RK.PRE_CH || k === RK.GREEN) { if (ART_PACK) nextArt(); else nextPhoto(); return true; }
+    if (k === RK.GUIDE) { var panels = rotationPanels(), i = panels.indexOf('calendar'); if (i >= 0) { S.rotIdx = i; renderRotate(); } return true; }
+    if (k === RK.RED) { modeOverride(); return true; }
+    if (k === RK.BLUE) { loadWeather(); if (!FORCE_DEMO) { loadCore(); loadLights(); } return true; }
+    if (k === RK.PLAY_PAUSE) { remoteCmd('toggle'); return true; }
+    if (k === RK.PLAY) { remoteCmd('resume'); return true; }
+    if (k === RK.PAUSE) { remoteCmd('pause'); return true; }
+    if (k === RK.STOP) { remoteCmd('stop'); return true; }
+    if (k === RK.FF) { remoteCmd('seek', { seconds: 30 }); return true; }
+    if (k === RK.REWIND) { remoteCmd('seek', { seconds: -30 }); return true; }
+    if (k === RK.NEXT) { remoteCmd('next'); return true; }
+    if (k === RK.PREV) { remoteCmd('prev'); return true; }
+    if (k === RK.EXIT) { leave(); return true; }
+    return false;
+  }
   var LIGHT_KEYS = [13, 37, 38, 39, 40, 10009, 27];
   document.addEventListener('keydown', function (e) {
     var k = e.keyCode;
-    if (LIGHT_KEYS.indexOf(k) < 0) return;
+    if (LIGHT_KEYS.indexOf(k) < 0) { if (extraKey(k)) e.preventDefault(); return; }
     e.preventDefault();
     if (!$('pLights').hidden) {
       if (k === 13) { enterPress(true, e); return; }
@@ -579,6 +616,7 @@
   document.addEventListener('click', function () { if ($('pLights').hidden) leave(); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { tick(); loadCore(); loadWeather(); } });
 
+  R.register();
   tick(); setInterval(tick, 1000);
   setInterval(pixelShift, 90000);
   loadWeather(); setInterval(loadWeather, 20 * 60000);

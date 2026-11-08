@@ -28,6 +28,10 @@ KEYS = {
     "media": ["KEY_PLAY", "KEY_PAUSE", "KEY_STOP", "KEY_FF", "KEY_REWIND"],
     "color": ["KEY_RED", "KEY_GREEN", "KEY_YELLOW", "KEY_BLUE"],
     "digits": ["KEY_%d" % i for i in range(10)],
+    # BN59-01315A extras
+    "channel": ["KEY_CHUP", "KEY_CHDOWN", "KEY_PRECH", "KEY_CH_LIST"],
+    "info": ["KEY_INFO", "KEY_GUIDE", "KEY_CAPTION", "KEY_TOOLS", "KEY_MENU"],
+    "transport": ["KEY_REC", "KEY_PLAY_BACK"],
 }
 
 

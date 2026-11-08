@@ -527,11 +527,9 @@
 
   // ------------------------------------------------------------ input
 
-  function registerKeys() {
-    if (!hasTizen || !tizen.tvinputdevice) return;
-    ['MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaStop', 'MediaFastForward', 'MediaRewind', 'MediaTrackNext', 'MediaTrackPrevious',
-      'ColorF0Red', 'ColorF1Green', 'ColorF2Yellow', 'ColorF3Blue'].forEach(function (k) { try { tizen.tvinputdevice.registerKey(k); } catch (e) { /* unsupported */ } });
-  }
+  var R = window.Remote || { KEY: {}, register: function () {}, digit: function () { return -1; } };
+  function registerKeys() { R.register(); }
+  function hideApp() { if (hasTizen) { try { tizen.application.getCurrentApplication().hide(); } catch (e) { /* ignore */ } } }
   function back() {
     if (S.playing) { stopPlayback(); return; }
     if (S.view === 'library' && popLevel()) return;
@@ -551,9 +549,11 @@
         case KEY.FF: seek(60); break;
         case KEY.NEXT: playRelative(1); break;
         case KEY.PREV: playRelative(-1); break;
-        case KEY.GREEN: S.subsOn = !S.subsOn; updateSubs(); showOsd(); break;
-        case KEY.UP: case KEY.DOWN: showOsd(); break;
-        case KEY.STOP: case KEY.BACK: case KEY.ESC: stopPlayback(); break;
+        case KEY.GREEN: case R.KEY.CAPTION: S.subsOn = !S.subsOn; updateSubs(); showOsd(); break;   // CC/VD toggles subtitles
+        case R.KEY.CH_UP: playRelative(1); break;
+        case R.KEY.CH_DOWN: playRelative(-1); break;
+        case KEY.UP: case KEY.DOWN: case R.KEY.INFO: showOsd(); break;
+        case KEY.STOP: case KEY.BACK: case KEY.ESC: case R.KEY.EXIT: stopPlayback(); break;
         default: return;
       }
       e.preventDefault();
@@ -568,7 +568,17 @@
       case KEY.BACK: case KEY.ESC: back(); break;
       case KEY.BLUE: if (S.view === 'dashboard') loadDash(true); else { toast('Rescanning drives…'); sendStorageHints(); loadLib(true); } break;
       case KEY.YELLOW: goAmbient(); break;
-      default: return;
+      case R.KEY.GUIDE: S.libStack = []; setView('library'); break;
+      case R.KEY.CH_LIST: S.libStack = [{ type: 'all' }]; setView('library'); break;
+      case R.KEY.CH_UP: move('up'); move('up'); move('up'); break;
+      case R.KEY.CH_DOWN: move('down'); move('down'); move('down'); break;
+      case R.KEY.INFO: if (S.sel) toast(S.sel.innerText.replace(/\s*\n\s*/g, '  ·  ')); break;
+      case R.KEY.EXIT: hideApp(); break;
+      default: {
+        var d = R.digit(k);
+        if (d === 1) setView('home'); else if (d === 2) { S.libStack = []; setView('library'); } else if (d === 3) setView('dashboard'); else if (d === 0) goAmbient();
+        else return;
+      }
     }
     e.preventDefault();
   });

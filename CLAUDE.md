@@ -24,6 +24,27 @@
 - `tv/tools/set-password.js` – writes `tv/<app>/service/auth.js` (gitignored); `DASH_PASSWORD=... node tv/tools/set-password.js --app homeapp|torrentapp|serverapp`, never the prompt
 - `tv/deploy.py` – `--app homeapp|torrentapp|serverapp`: build (npm), package, `sdb connect`, install, run
 
+## Remote (Samsung BN59-01315A layout)
+Shared map `tv/common/remote.js` (copied into each app as `js/remote.js` / `ambient/remote.js` by `tv/tools/sync-common.js`, which `deploy.py` runs). Buttons the TV keeps: Power, Source, Vol, Mute, Home, Settings, Netflix / Prime Video / Hulu (TV launches them). Deliverable and registered: 0-9, -, PRE-CH, CH ±, CH LIST, Guide, Info, CC/VD, Exit, A/B/C/D, transport keys. When guiding the user, name buttons as printed on this remote (A=red, B=green, C=yellow, D=blue; OK = the centre button; "Return" not "Back").
+| Button | Home screen | Dash Server | Player (Dash Server) | Torrents | Ambient |
+|---|---|---|---|---|---|
+| 1-9 | launch dock app N | 1 Home · 2 Library · 3 Dashboard | – | – | 1 Ink · 2 Poster · 3 Parks (saved) |
+| 0 | screensaver | ambient screen | – | – | theme back to config |
+| CH ± / PRE-CH | next photo | page (3 items) | next / previous episode | page (5 items) | next scene / photo |
+| CH LIST | – | Library → Everything | – | – | – |
+| Guide | open Dash Server | Library | – | open Dash Server | show calendar panel |
+| Info | photos only (toggle overlay) | details toast | show OSD | details toast | art only (toggle) |
+| CC/VD | – | – | subtitles on/off | – | – |
+| A red | dim toggle | – | – | – | mode: auto → night → day |
+| B green | next photo | – | subtitles | – | next scene |
+| C yellow | screensaver | ambient | – | – | – |
+| D blue | reload photos | rescan / logs | – | – | reload data |
+| ▶ ⏸ ■ ◀◀ ▶▶ \|◀◀ ▶▶\| | – | – | play/pause, stop, ±60 s, next/prev | same | sent to the Dash Server player via `/api/remote` |
+| Return | hide app | back / hide | stop | back / hide | lights: leave adjust → disarm → Dash Server |
+| Exit | hide app | hide app | stop | stop / hide | Dash Server |
+| Arrows + OK | dock | spatial focus | seek ±10 s / pause | list | lights bay (hold OK = brightness) |
+`tv.py key` accepts the same names as `KEY_*` (`KEY_INFO`, `KEY_GUIDE`, `KEY_CH_LIST`, `KEY_PRECH`, `KEY_CHUP`, `KEY_CAPTION`, `KEY_RED` …); the recorder has single-letter shortcuts for them.
+
 ## Rules
 1. **Look before acting.** After every key press or macro step, Read `tv/camera/frames/latest.jpg` and confirm the screen matches what you expect. If it doesn't (wrong page, popup, a movie opened), press `KEY_RETURN` and re-orient before continuing. Never chain blind key sequences longer than ~5 keys while exploring.
 2. **Log before change.** Before changing any setting: `tv.py snap <id>`, then `tv.py log-setting --id ... --path ... --original ... --new ... --undo undo-<id>`. Build the undo macro with `tv.py save-macro undo-<id> HOME ... --replace` (or by navigating with `tv.py key ... --record undo-<id>`), and test it once.

@@ -182,4 +182,6 @@ body[data-mode="sleep"] #backdrop, body[data-mode="sleep"] #stage { opacity: 0; 
 #sleepClock #sleepDate { display: block; margin-top: 12px; font-family: var(--serif); font-style: italic; font-size: 22px; letter-spacing: 0.08em; color: rgba(230, 217, 188, 0.3); }
 #demoTag { position: absolute; right: 48px; top: 48px; z-index: 3; font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--cream-2); border: 1px solid var(--cream-3); padding: 5px 10px; }
 .panel.rotate.squeezed { display: none; }
+body.plain #stage > :not(.clockBlock), body.plain .weather > *, body.plain #stage::after, body.plain #stage::before, body.plain #demoTag { opacity: 0 !important; transition: opacity 1s; }
+body.plain .clockBlock { transition: opacity 1s; }
 [hidden] { display: none !important; }

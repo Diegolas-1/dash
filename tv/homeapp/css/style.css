@@ -32,7 +32,7 @@ body.saver #bg .layer.on { animation: drift 40s ease-in-out infinite alternate; 
 #dim { background: #000; opacity: 0; pointer-events: none; transition: opacity 3s; }
 
 #ui { position: absolute; inset: 0; padding: 56px 80px; transition: opacity 1s; }
-body.saver #ui, body.saver #shade { opacity: 0; }
+body.saver #ui, body.saver #shade, body.plain #ui { opacity: 0; }
 
 header { display: flex; justify-content: space-between; align-items: flex-start; }
 #time { font-size: 132px; font-weight: 300; line-height: 1; letter-spacing: -2px; text-shadow: 0 4px 24px rgba(0,0,0,.5); }

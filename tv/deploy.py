@@ -75,6 +75,9 @@ def main():
     sdb = find_tool("sdb", "tools")
     serial = "%s:26101" % a.ip
 
+    npm_node = shutil.which("node")
+    if npm_node:
+        run([npm_node, os.path.join(st.HERE, "tools", "sync-common.js")])
     build(src)
     shutil.rmtree(stage, ignore_errors=True)
     shutil.copytree(src, stage, ignore=shutil.ignore_patterns(*BUILD_ONLY))

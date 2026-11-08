@@ -11,7 +11,8 @@
   var SVG = 'http://www.w3.org/2000/svg';
 
   var S = { weather: null, dash: null, player: null, library: null, torrents: null, photos: [], photoIdx: -1, photoLayer: 0, art: null, artIdx: -1,
-    calendar: null, prayer: null, demo: false, coreFails: 0, rotIdx: 0, mode: '', shift: 0 };
+    calendar: null, prayer: null, demo: false, coreFails: 0, rotIdx: 0, mode: '', shift: 0,
+    lights: null, lf: { idx: 0, armed: false, adjust: false, timer: null }, pending: {}, enterDown: 0, enterHeld: false };
 
   // ------------------------------------------------------------ utils
 
@@ -187,7 +188,7 @@
     });
   }
   function loadTorrents() {
-    return getJSON(C.services.torrents + '/api/state', 4000).then(function (d) { S.torrents = d; renderHouse(); }).catch(function () { if (!S.torrents && S.demo) S.torrents = demoTorrents(); });
+    return getJSON(C.services.torrents + '/api/state', 4000).then(function (d) { S.torrents = d; }).catch(function () { if (!S.torrents && S.demo) S.torrents = demoTorrents(); });
   }
   function loadPhotos() {
     if (C.backdrop === 'aurora' || ART_PACK) return;
@@ -291,7 +292,16 @@
 
   // ------------------------------------------------------------ render
 
-  function renderAll() { renderMedia(); renderRotate(); renderHouse(); renderStatus(); $('demoTag').hidden = !S.demo; }
+  function renderAll() { renderMedia(); renderRotate(); renderLights(); renderStatus(); $('demoTag').hidden = !S.demo; }
+  // If the column cannot fit everything, drop the rotating panel instead of showing a sliver of it.
+  function fitColumn() {
+    var col = document.querySelector('.column'), rot = $('pRotate');
+    if (!col || !rot || rot.hidden) return;
+    rot.classList.remove('squeezed');                       // measure with it shown (no paint happens in between)
+    var tight = col.scrollHeight > col.clientHeight + 2 || rot.scrollHeight > rot.clientHeight + 2;
+    if (tight) rot.classList.add('squeezed');
+  }
+  setInterval(fitColumn, 1000);
 
   function renderMedia() {
     var p = S.player, lib = S.library, panel = $('pMedia');
@@ -393,31 +403,121 @@
     if (advance) { body.classList.add('fade'); setTimeout(function () { draw(); body.classList.remove('fade'); }, 900); } else draw();
   }
 
-  function renderHouse() {
-    var d = S.dash, panel = $('pHouse'); if (!d) { panel.hidden = true; return; }
-    panel.hidden = false;
-    var sv = $('services'); sv.textContent = '';
-    d.services.forEach(function (s) { var row = el('div', 'svc' + (s.up ? '' : ' down')); row.appendChild(el('i')); row.appendChild(el('span', null, s.name)); sv.appendChild(row); });
-    var rings = $('rings'); rings.textContent = '';
-    d.storage.slice(0, 3).forEach(function (st) {
-      var used = st.total ? 1 - st.free / st.total : 0, r = 28, circ = 2 * Math.PI * r;
-      var wrap = el('div', 'ring' + (used > 0.92 ? ' crit' : used > 0.8 ? ' warn' : ''));
-      var svg = document.createElementNS(SVG, 'svg'); svg.setAttribute('viewBox', '0 0 64 64');
-      svg.appendChild(svgEl('circle', { class: 'bgc', cx: 32, cy: 32, r: r }));
-      svg.appendChild(svgEl('circle', { class: 'fgc', cx: 32, cy: 32, r: r, 'stroke-dasharray': circ, 'stroke-dashoffset': circ * (1 - used) }));
-      wrap.appendChild(svg);
-      var txt = el('div'); txt.appendChild(el('div', 'rt', (st.kind === 'usb' ? 'USB · ' : '') + st.label)); txt.appendChild(el('div', 'rv', st.total ? fmtB(st.free) + ' free' : (st.writable ? 'ready' : 'read-only'))); wrap.appendChild(txt);
-      rings.appendChild(wrap);
+  // ------------------------------------------------------------ lights (switch bay)
+
+  var LC = C.lights || {};
+  function loadLights() {
+    return core('/api/lights').then(function (d) { S.lights = d; renderLights(); }).catch(function () { if (!S.lights && (S.demo || FORCE_DEMO)) { S.lights = demoLights(); renderLights(); } });
+  }
+  function demoLights() {
+    return { provider: 'demo', devices: [
+      { id: 'd1', name: 'Floor lamp', on: true, brightness: 70, color: '#ffb366', online: true }, { id: 'd2', name: 'TV strip', on: true, brightness: 40, color: '#6ea8ff', online: true },
+      { id: 'd3', name: 'Bedside', on: false, brightness: 30, color: '#ffd9a8', online: true }, { id: 'd4', name: 'Kitchen', on: true, brightness: 100, color: '#fff2d6', online: true },
+      { id: 'd5', name: 'Desk', on: false, brightness: 55, color: '#c8ffd6', online: true }, { id: 'd6', name: 'Hall', on: true, brightness: 25, color: '#ffc7a1', online: true }] };
+  }
+  function lightIcon(name, fallback) { var ic = (LC.icons || {})[name]; return 'l-' + (ic || fallback || 'bulb'); }
+  function tiles() {
+    if (!S.lights) return [];
+    var devs = S.lights.devices.slice(), grouped = {}, out = [];
+    (LC.groups || []).forEach(function (g) {
+      var members = devs.filter(function (d) { return g.members.indexOf(d.name) >= 0 || g.members.indexOf(d.id) >= 0; });
+      if (!members.length) return;
+      members.forEach(function (d) { grouped[d.id] = true; });
+      var on = members.filter(function (d) { return d.on; });
+      out.push({ key: 'g:' + g.name, name: g.name, icon: 'l-' + (g.icon || 'couch'), group: true, members: members, on: on.length > 0,
+        brightness: Math.round((on.length ? on : members).reduce(function (a, d) { return a + d.brightness; }, 0) / (on.length ? on : members).length), color: (on[0] || members[0]).color });
     });
-    var net = $('netline'); net.textContent = '';
-    var sp = d.speed && d.speed[d.speed.length - 1];
-    if (sp && sp.downMbps !== null) { var a = el('span'); a.appendChild(el('b', null, sp.downMbps)); a.appendChild(document.createTextNode(' Mbps down')); net.appendChild(a); }
-    if (S.torrents && S.torrents.torrents) {
-      var act = S.torrents.torrents.filter(function (t) { return t.active; }), rate = act.reduce(function (s, t) { return s + (t.downloadSpeed || 0); }, 0);
-      var b = el('span'); b.appendChild(el('b', null, act.length)); b.appendChild(document.createTextNode(act.length === 1 ? ' torrent active' : ' torrents active' + (rate ? '  ·  ↓ ' + fmtB(rate) + '/s' : ''))); net.appendChild(b);
+    devs.forEach(function (d) {
+      if (LC.hideGroupedDevices && grouped[d.id]) return;
+      out.push({ key: 'd:' + d.id, name: d.name, icon: lightIcon(d.name), group: false, members: [d], on: d.on, brightness: d.brightness, color: d.color, offline: d.online === false });
+    });
+    var order = LC.order || [];
+    out.sort(function (a, b) { var ia = order.indexOf(a.name), ib = order.indexOf(b.name); if (ia < 0) ia = 999; if (ib < 0) ib = 999; return ia - ib || (b.group - a.group) || a.name.localeCompare(b.name); });
+    return out;
+  }
+  function renderLights() {
+    var panel = $('pLights'), bay = $('lightBay'), list = tiles();
+    if (!list.length) { panel.hidden = true; return; }
+    panel.hidden = false;
+    bay.textContent = '';
+    S.lf.idx = Math.max(0, Math.min(S.lf.idx, list.length - 1));
+    list.forEach(function (t, i) {
+      var sw = el('div', 'sw' + (t.on ? ' on' : '') + (t.group ? ' grp' : '') + (t.offline ? ' off' : '') + (S.lf.armed && i === S.lf.idx ? (S.lf.adjust ? ' focus adjust' : ' focus') : ''));
+      sw.setAttribute('data-key', t.key);
+      var rocker = el('div', 'rocker');
+      var lvl = el('i', 'lvl'); lvl.style.height = (t.on ? t.brightness : 0) + '%'; lvl.style.background = t.color; rocker.appendChild(lvl);
+      var ic = document.createElementNS(SVG, 'svg'); ic.setAttribute('class', 'ic'); useIcon(ic, t.icon); rocker.appendChild(ic);
+      rocker.appendChild(el('span', 'pct', t.on ? t.brightness + '%' : 'off'));
+      sw.appendChild(rocker);
+      sw.appendChild(el('div', 'swName', t.name));
+      bay.appendChild(sw);
+    });
+    var hint = $('lightsHint');
+    hint.textContent = !S.lf.armed ? '' : S.lf.adjust ? 'Up / Down: brightness  ·  Back: done' : 'OK: on/off  ·  hold OK: brightness';
+    if (S.lights && S.lights.error && S.lights.provider === 'govee') hint.textContent = 'Govee: ' + S.lights.error;
+  }
+  function armLights() {
+    S.lf.armed = true;
+    clearTimeout(S.lf.timer);
+    S.lf.timer = setTimeout(function () { S.lf.armed = false; S.lf.adjust = false; renderLights(); }, 9000);
+  }
+  function currentTile() { var list = tiles(); return list[S.lf.idx] || null; }
+  function setLight(dev, patch) {
+    Object.assign(dev, patch);                 // optimistic
+    S.pending[dev.id] = Object.assign(S.pending[dev.id] || {}, patch);
+    clearTimeout(setLight.timers[dev.id]);
+    setLight.timers[dev.id] = setTimeout(function () {
+      var body = S.pending[dev.id]; delete S.pending[dev.id];
+      if (!S.lights || S.lights.provider === 'demo') return;
+      var x = new XMLHttpRequest(); x.open('PUT', C.services.core + '/api/lights/' + encodeURIComponent(dev.id)); x.setRequestHeader('Content-Type', 'application/json');
+      x.onload = function () { if (x.status >= 300) { try { var d = JSON.parse(x.responseText); $('lightsHint').textContent = d.error || 'light error'; } catch (e) { /* ignore */ } } };
+      x.send(JSON.stringify(body));
+    }, 400);
+  }
+  setLight.timers = {};
+  function toggleTile(t) { var on = !t.on; t.members.forEach(function (d) { setLight(d, { on: on }); }); renderLights(); }
+  function nudgeTile(t, delta) {
+    var step = LC.step || 10;
+    t.members.forEach(function (d) {
+      if (!d.on) { setLight(d, { on: true, brightness: d.brightness || step }); return; }   // from off: come back at the last level
+      var b = Math.max(step, Math.min(100, Math.round((d.brightness + delta) / step) * step));
+      if (b !== d.brightness) setLight(d, { brightness: b });
+    });
+    renderLights();
+  }
+  function lightsKey(e) {
+    var k = e.keyCode, t = currentTile();
+    if (!t) return false;
+    if (k === 37 || k === 39) {                                           // left / right: move focus
+      if (S.lf.armed) { var n = tiles().length; S.lf.idx = (S.lf.idx + (k === 39 ? 1 : -1) + n) % n; }
+      S.lf.adjust = false; armLights(); renderLights(); return true;
     }
-    var up = d.system && d.system.uptime; if (up) { var c = el('span'); c.appendChild(el('b', null, Math.floor(up / 86400) + 'd ' + Math.floor(up % 86400 / 3600) + 'h')); c.appendChild(document.createTextNode(' up')); net.appendChild(c); }
-    if (!net.childNodes.length) net.hidden = true; else net.hidden = false;
+    if (k === 38 || k === 40) {                                           // up / down: brightness (in adjust mode)
+      if (!S.lf.armed) { armLights(); renderLights(); return true; }
+      if (!S.lf.adjust) { S.lf.adjust = true; }
+      nudgeTile(t, k === 38 ? (LC.step || 10) : -(LC.step || 10)); armLights(); return true;
+    }
+    if (k === 13) return true;                                            // enter handled on keyup (click vs hold)
+    if (k === 10009 || k === 27) {                                        // back: leave adjust, then disarm, then exit
+      if (S.lf.adjust) { S.lf.adjust = false; armLights(); renderLights(); return true; }
+      if (S.lf.armed) { S.lf.armed = false; clearTimeout(S.lf.timer); renderLights(); return true; }
+      return false;
+    }
+    return false;
+  }
+  function enterPress(down, e) {
+    var t = currentTile();
+    if (!t) return;
+    if (down) {
+      if (!S.lf.armed) { armLights(); renderLights(); S.enterDown = Date.now(); S.enterHeld = true; return; }   // first touch only wakes the bay
+      if (!S.enterDown) { S.enterDown = Date.now(); S.enterHeld = false; return; }
+      if (e.repeat || Date.now() - S.enterDown > 450) { if (!S.enterHeld) { S.enterHeld = true; S.lf.adjust = true; armLights(); renderLights(); } }
+      return;
+    }
+    var held = S.enterHeld || (S.enterDown && Date.now() - S.enterDown > 450);
+    if (!held && S.enterDown && !S.lf.adjust) toggleTile(t);
+    else if (held && !S.lf.adjust && S.enterDown && Date.now() - S.enterDown > 450) { S.lf.adjust = true; renderLights(); }
+    S.enterDown = 0; S.enterHeld = false; armLights();
   }
 
   function renderStatus() {
@@ -447,6 +547,7 @@
         { id: 'demo2', title: 'S02E04 The Lighthouse', show: 'Harbor Days', kind: 'video', progress: { pos: 900, dur: 2700 } },
         { id: 'demo3', title: 'Lake Tahoe, summer 1998', kind: 'video', progress: { pos: 300, dur: 1500 } }], movies: [], shows: [], music: [] };
     S.torrents = demoTorrents();
+    if (!S.lights || S.lights.provider === 'demo') S.lights = demoLights();
     if (!S.calendar) { var t = now(); S.calendar = [
       { start: new Date(t.getTime() + 3600000 * 2), title: 'Dinner with Sam', allDay: false }, { start: new Date(t.getTime() + 86400000), title: 'Recycling day', allDay: true },
       { start: new Date(t.getTime() + 86400000 + 3600000 * 15), title: 'Parent–teacher conferences', allDay: false }]; }
@@ -463,10 +564,19 @@
   // ------------------------------------------------------------ input & boot
 
   function leave() { if (STANDALONE) return; location.href = '../index.html'; }
+  var LIGHT_KEYS = [13, 37, 38, 39, 40, 10009, 27];
   document.addEventListener('keydown', function (e) {
-    if (e.keyCode === 10009 || e.keyCode === 27 || e.keyCode === 13 || (e.keyCode >= 37 && e.keyCode <= 40)) { e.preventDefault(); leave(); }
+    var k = e.keyCode;
+    if (LIGHT_KEYS.indexOf(k) < 0) return;
+    e.preventDefault();
+    if (!$('pLights').hidden) {
+      if (k === 13) { enterPress(true, e); return; }
+      if (lightsKey(e)) return;
+    }
+    if (k === 10009 || k === 27 || !S.lf.armed) leave();
   });
-  document.addEventListener('click', leave);
+  document.addEventListener('keyup', function (e) { if (e.keyCode === 13 && !$('pLights').hidden) enterPress(false, e); });
+  document.addEventListener('click', function () { if ($('pLights').hidden) leave(); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { tick(); loadCore(); loadWeather(); } });
 
   tick(); setInterval(tick, 1000);
@@ -477,6 +587,8 @@
   setInterval(function () { if (!FORCE_DEMO) { loadCore(); loadTorrents(); } }, 10000);
   loadPhotos(); setInterval(loadPhotos, 5 * 60000); setInterval(nextPhoto, (C.photoIntervalSec || 90) * 1000);
   loadArt(); setInterval(nextArt, ((C.art && C.art.intervalSec) || 600) * 1000);
+  if (FORCE_DEMO) { S.lights = demoLights(); renderLights(); }
+  else { loadLights(); setInterval(function () { if (!document.hidden && !Object.keys(S.pending).length) loadLights(); }, 5000); }
   loadCalendar(); setInterval(loadCalendar, 15 * 60000);
   loadPrayer(); setInterval(loadPrayer, 6 * 3600000);
   setInterval(function () { renderRotate(true); }, (C.rotateSec || 25) * 1000);

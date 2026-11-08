@@ -113,7 +113,7 @@ body[data-mode="night"] .pfEmpty { color: var(--light); } body[data-mode="night"
 .panel { flex: 1 1 0; min-height: 0; padding: 26px 30px; position: relative; overflow: hidden; display: flex; flex-direction: column; }
 .panel.media { background: var(--vermilion); color: var(--light); }
 .panel.rotate { background: var(--mustard); color: var(--ink); }
-.panel.house { background: var(--charcoal); color: var(--light); }
+.panel.house, .panel.lights { background: var(--charcoal); color: var(--light); }
 body[data-mode="night"] .panel.rotate { color: var(--light); }
 .eyebrow { font-size: 13px; letter-spacing: 0.26em; text-transform: uppercase; font-weight: 600; opacity: 0.7; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
 .eyebrow .live { width: 10px; height: 10px; background: currentColor; display: inline-block; animation: blink 4s ease-in-out infinite; }
@@ -164,6 +164,27 @@ body[data-mode="night"] .evt.now .when { color: var(--light); }
 .statusline i { width: 12px; height: 12px; background: var(--good); display: inline-block; }
 .statusline.alert { color: var(--ink); } .statusline.alert i { background: var(--bad); }
 
+
+/* ---------- lights: switch bay ---------- */
+.lights .eyebrow { justify-content: space-between; }
+.lightsHint { font-weight: 400; letter-spacing: 0; text-transform: none; opacity: .8; font-size: 13px; }
+.bay { display: flex; flex-wrap: wrap; gap: 14px 12px; }
+.sw { width: 68px; text-align: center; transition: transform .25s; }
+.rocker { position: relative; width: 68px; height: 104px; border-radius: 0; border: 2px solid rgba(250,246,236,.35); background: rgba(0,0,0,.3); overflow: hidden; box-shadow: inset 0 2px 6px rgba(0,0,0,.45); transition: border-color .3s, box-shadow .3s; }
+.rocker .lvl { position: absolute; left: 0; right: 0; bottom: 0; height: 0; display: block; transition: height .45s cubic-bezier(.2,.7,.2,1), background 1s; opacity: .92; }
+.rocker .lvl::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: rgba(255,255,255,.4); }
+.rocker .ic { position: absolute; left: 50%; top: 12px; width: 28px; height: 28px; transform: translateX(-50%); color: var(--light-2); fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
+.sw.on .rocker .ic { color: #fff; }
+.rocker .pct { position: absolute; left: 0; right: 0; bottom: 9px; font-size: 14px; font-weight: 600; letter-spacing: .04em; color: var(--light-2); text-shadow: 0 1px 2px rgba(0,0,0,.7); }
+.sw.on .rocker .pct { color: #fff; }
+.swName { margin-top: 7px; font-size: 13px; line-height: 1.1; height: 29px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; color: var(--light-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sw.grp .rocker { border-style: double; border-width: 4px; }
+.sw.off .rocker { opacity: .45; }
+.sw.focus { transform: translateY(-4px); }
+.sw.focus .rocker { border-color: var(--light); box-shadow: 0 0 0 3px rgba(0,0,0,.4), 0 0 0 5px var(--light), inset 0 2px 6px rgba(0,0,0,.45); }
+.sw.adjust .rocker { border-color: var(--mustard); box-shadow: 0 0 0 3px rgba(0,0,0,.4), 0 0 0 5px var(--mustard), 0 0 22px var(--mustard), inset 0 2px 6px rgba(0,0,0,.45); }
+.sw.adjust .rocker .pct { font-size: 20px; }
+
 /* ---------- night / sleep ---------- */
 body[data-mode="night"] .grain { opacity: 0.08; }
 body[data-mode="sleep"] { background: #000; }
@@ -173,4 +194,5 @@ body[data-mode="sleep"] #backdrop, body[data-mode="sleep"] #stage { opacity: 0; 
 #sleepClock #sleepDate { display: block; margin-top: 16px; font-family: var(--mono); font-size: 16px; letter-spacing: 0.26em; text-transform: uppercase; color: rgba(217, 207, 186, 0.3); }
 #demoTag { position: absolute; right: 52px; bottom: 54px; font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink-3); border: 1px solid var(--ink-3); padding: 5px 10px; background: var(--white); }
 .artCaption { display: none; }
+.panel.rotate.squeezed { display: none; }
 [hidden] { display: none !important; }

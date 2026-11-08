@@ -21,6 +21,15 @@ window.AMBIENT_CONFIG = {
   idleMinutes: 5,                     // Dash Server switches to this screen after idle (0 = never)
   rotateSec: 25,                      // how often the second panel changes
 
+  lights: {                           // tiles in the Lights panel; devices come from the Dash Server service (mock until a Govee key is set)
+    icons: { 'Floor lamp': 'floor-lamp', 'TV strip': 'strip', 'Bedside': 'bed', 'Kitchen': 'kitchen', 'Desk': 'desk', 'Hall': 'door' },
+    groups: [ { name: 'Living room', icon: 'couch', members: ['Floor lamp', 'TV strip'] } ],   // members by device name or id
+    hideGroupedDevices: false,        // true: a device inside a group gets no tile of its own
+    step: 10,                         // brightness step for Up/Down
+    order: []                         // optional explicit tile order by name; the rest follow alphabetically
+  },
+  // icons: bulb lamp floor-lamp strip ceiling spot desk bed couch kitchen tv plug fan candle string door bath plant
+
   calendarIcsUrl: '',                 // optional: a private iCal address (Google Calendar: Settings > Integrate > Secret address)
   prayerTimes: { enabled: false, method: 2, school: 0 }
 };

@@ -69,7 +69,7 @@ console.error = function () { logLine('error', arguments); _err.apply(console, a
 
 var server = null;
 var dataDir, stateFile;
-var db = { progress: {}, speed: [] };
+var db = { progress: {}, speed: [], lights: {} };
 var library = { at: 0, items: [], roots: [], scanning: false };
 var sessions = new Map();
 var failures = new Map();
@@ -333,7 +333,7 @@ function dashboardBody(withLogs, cb) {
       memTotal: os.totalmem(), memFree: os.freemem(), load: os.loadavg(), cpus: os.cpus().length
     }, systemHints),
     storage: storageList(), library: { items: library.items.length, at: library.at, roots: library.roots.length },
-    speed: db.speed.slice(-20), player: player, pendingCommands: commandQueue.length, services: []
+    speed: db.speed.slice(-20), player: player, pendingCommands: commandQueue.length, lights: { provider: lights.provider, count: lights.devices.length, on: lights.devices.filter(function (d) { return d.on; }).length, error: lights.error }, services: []
   };
   var pending = SERVICES.length;
   SERVICES.forEach(function (svc) {
@@ -385,6 +385,122 @@ function runSpeedTest(cb) {
   });
   req.on('timeout', function () { req.destroy(new Error('download timed out')); });
   req.on('error', function (e) { finish(e); });
+}
+
+// ---------------------------------------------------------------- lights (providers: mock | govee)
+
+var lightsCfg = null;
+try { lightsCfg = require('./lights.js'); } catch (e) { lightsCfg = null; }      // written by tv/tools/set-lights.js (gitignored)
+var GOVEE_KEY = (lightsCfg && lightsCfg.apiKey) || process.env.GOVEE_API_KEY || '';
+var LIGHTS_PROVIDER = (lightsCfg && lightsCfg.provider) || (GOVEE_KEY ? 'govee' : 'mock');
+var MOCK_LIGHTS = [
+  { id: 'mock-floor', name: 'Floor lamp', on: true, brightness: 70, color: '#ffb366' },
+  { id: 'mock-tv', name: 'TV strip', on: true, brightness: 40, color: '#6ea8ff' },
+  { id: 'mock-bed', name: 'Bedside', on: false, brightness: 30, color: '#ffd9a8' },
+  { id: 'mock-kitchen', name: 'Kitchen', on: true, brightness: 100, color: '#fff2d6' },
+  { id: 'mock-desk', name: 'Desk', on: false, brightness: 55, color: '#c8ffd6' },
+  { id: 'mock-hall', name: 'Hall', on: true, brightness: 25, color: '#ffc7a1' }
+];
+var lights = { provider: LIGHTS_PROVIDER, devices: [], at: 0, error: null, listAt: 0 };
+var goveeQueue = Promise.resolve();
+
+function hexOk(c) { return /^#[0-9a-fA-F]{6}$/.test(String(c || '')); }
+function kelvinToHex(k) {   // rough warm->cool ramp for lights reporting a color temperature
+  var t = Math.max(0, Math.min(1, (k - 2000) / 4500));
+  var r = Math.round(255 - 25 * t), g = Math.round(180 + 60 * t), b = Math.round(107 + 148 * t);
+  return '#' + [r, g, b].map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join('');
+}
+
+function mockInit() {
+  lights.devices = MOCK_LIGHTS.map(function (d) { return Object.assign({}, d, db.lights[d.id] || {}, { id: d.id, name: d.name, model: 'mock', online: true }); });
+  lights.at = Date.now();
+}
+function mockControl(dev, patch) {
+  Object.assign(dev, patch);
+  db.lights[dev.id] = { on: dev.on, brightness: dev.brightness, color: dev.color };
+  save();
+  return Promise.resolve(dev);
+}
+
+function goveeRequest(method, path, body) {
+  return new Promise(function (resolve, reject) {
+    var data = body ? JSON.stringify(body) : null;
+    var req = https.request({ host: 'developer-api.govee.com', path: path, method: method, timeout: 12000,
+      headers: Object.assign({ 'Govee-API-Key': GOVEE_KEY, 'Accept': 'application/json' }, data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {}) }, function (res) {
+      var chunks = '';
+      res.on('data', function (c) { if (chunks.length < 200000) chunks += c; });
+      res.on('end', function () {
+        var json = null; try { json = JSON.parse(chunks || '{}'); } catch (e) { /* not json */ }
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve(json || {});
+        else reject(new Error('Govee ' + res.statusCode + (json && json.message ? ': ' + json.message : '')));
+      });
+    });
+    req.on('timeout', function () { req.destroy(new Error('Govee timeout')); });
+    req.on('error', reject);
+    req.end(data);
+  });
+}
+function goveeLater(fn) { goveeQueue = goveeQueue.then(fn, fn).then(function (r) { return new Promise(function (res) { setTimeout(function () { res(r); }, 350); }); }); return goveeQueue; }
+function goveeRefresh(full) {
+  if (!GOVEE_KEY) { lights.error = 'no API key'; return Promise.resolve(); }
+  var listP = (full || !lights.listAt || Date.now() - lights.listAt > 10 * 60000)
+    ? goveeLater(function () { return goveeRequest('GET', '/v1/devices'); }).then(function (r) {
+      var list = ((r.data || {}).devices || []).filter(function (d) { return d.controllable !== false; });
+      var byId = {}; lights.devices.forEach(function (d) { byId[d.id] = d; });
+      lights.devices = list.map(function (d) { return Object.assign({ on: false, brightness: 100, color: '#ffd9a8', online: true }, byId[d.device] || {}, { id: d.device, model: d.model, name: d.deviceName || d.model, cmds: d.supportCmds || [], retrievable: d.retrievable !== false }); });
+      lights.listAt = Date.now();
+    })
+    : Promise.resolve();
+  return listP.then(function () {
+    return lights.devices.reduce(function (chain, dev) {
+      if (!dev.retrievable) return chain;
+      return chain.then(function () {
+        return goveeLater(function () { return goveeRequest('GET', '/v1/devices/state?device=' + encodeURIComponent(dev.id) + '&model=' + encodeURIComponent(dev.model)); }).then(function (r) {
+          ((r.data || {}).properties || []).forEach(function (pr) {
+            if (pr.online !== undefined) dev.online = !!pr.online;
+            if (pr.powerState !== undefined) dev.on = pr.powerState === 'on';
+            if (pr.brightness !== undefined) dev.brightness = Number(pr.brightness);
+            if (pr.color) dev.color = '#' + [pr.color.r, pr.color.g, pr.color.b].map(function (v) { return ('0' + Number(v).toString(16)).slice(-2); }).join('');
+            if (pr.colorTem) dev.color = kelvinToHex(Number(pr.colorTem));
+          });
+        }).catch(function (e) { dev.error = e.message; });
+      });
+    }, Promise.resolve());
+  }).then(function () { lights.at = Date.now(); lights.error = null; }, function (e) { lights.error = e.message; console.error('govee', e.message); });
+}
+function goveeControl(dev, patch) {
+  var cmds = [];
+  if (patch.on !== undefined) cmds.push({ name: 'turn', value: patch.on ? 'on' : 'off' });
+  if (patch.brightness !== undefined) cmds.push({ name: 'brightness', value: patch.brightness });
+  if (patch.color !== undefined) cmds.push({ name: 'color', value: { r: parseInt(patch.color.slice(1, 3), 16), g: parseInt(patch.color.slice(3, 5), 16), b: parseInt(patch.color.slice(5, 7), 16) } });
+  Object.assign(dev, patch);   // optimistic; the next refresh corrects it
+  return cmds.reduce(function (chain, cmd) {
+    return chain.then(function () { return goveeLater(function () { return goveeRequest('PUT', '/v1/devices/control', { device: dev.id, model: dev.model, cmd: cmd }); }); });
+  }, Promise.resolve()).then(function () { dev.error = null; return dev; }, function (e) { dev.error = e.message; throw e; });
+}
+
+function lightsBody() {
+  return { provider: lights.provider, at: lights.at, error: lights.error,
+    devices: lights.devices.map(function (d) { return { id: d.id, name: d.name, model: d.model, on: !!d.on, brightness: Number(d.brightness) || 0, color: hexOk(d.color) ? d.color : '#ffd9a8', online: d.online !== false, error: d.error || null }; }) };
+}
+function handleLightControl(req, res, id) {
+  var dev = null;
+  lights.devices.forEach(function (d) { if (d.id === id) dev = d; });
+  if (!dev) return send(req, res, 404, { error: 'unknown light' });
+  readJson(req, 512, function (err, body) {
+    if (err) return send(req, res, 400, { error: 'bad request' });
+    var patch = {};
+    if (typeof body.on === 'boolean') patch.on = body.on;
+    if (body.brightness !== undefined) { var b = Math.round(Number(body.brightness)); if (!(b >= 0 && b <= 100)) return send(req, res, 400, { error: 'brightness 0-100' }); patch.brightness = b; }
+    if (body.color !== undefined) { if (!hexOk(body.color)) return send(req, res, 400, { error: 'color must be #rrggbb' }); patch.color = String(body.color).toLowerCase(); }
+    if (!Object.keys(patch).length) return send(req, res, 400, { error: 'nothing to change' });
+    var p = lights.provider === 'govee' ? goveeControl(dev, patch) : mockControl(dev, patch);
+    p.then(function () { send(req, res, 200, lightsBody()); }, function (e) { send(req, res, 502, { error: e.message, lights: lightsBody() }); });
+  });
+}
+function lightsStart() {
+  if (lights.provider === 'govee') { goveeRefresh(true); setInterval(function () { goveeRefresh(false); }, 60000).unref(); }
+  else mockInit();
 }
 
 // ---------------------------------------------------------------- auth / http helpers
@@ -639,6 +755,7 @@ function route(req, res) {
       return send(req, res, 200, libraryBody());
     }
     if (m === 'GET' && url === '/api/dashboard') return dashboardBody(query(req.url).logs === '1', function (body) { send(req, res, 200, body); });
+    if (m === 'GET' && url === '/api/lights') return send(req, res, 200, lightsBody());
     if (m === 'GET' && url === '/api/player') return handlePlayer(req, res);
     if (m === 'GET' && url === '/api/remote') return handleRemote(req, res);
     if (m === 'GET' && url === '/api/commands') {
@@ -649,6 +766,8 @@ function route(req, res) {
 
     if (!canWrite(req)) return send(req, res, 403, { error: 'missing header' });
     if (m === 'PUT' && url === '/api/player') return handlePlayer(req, res);
+    if (m === 'PUT' && parts[2] === 'lights' && parts.length === 4) { try { return handleLightControl(req, res, decodeURIComponent(parts[3])); } catch (e) { return send(req, res, 400, { error: 'bad id' }); } }
+    if (m === 'POST' && url === '/api/lights/refresh') { if (lights.provider === 'govee') goveeRefresh(true); return send(req, res, 200, { ok: true }); }
     if (m === 'POST' && url === '/api/remote') return handleRemote(req, res);
     if (m === 'POST' && url === '/api/speedtest') return runSpeedTest(function (err, r) { if (err) return send(req, res, 409, { error: err.message }); send(req, res, 200, r); });
     if (m === 'POST' && url === '/api/system-hints') return handleHints(req, res, 'system');
@@ -669,7 +788,8 @@ function start() {
   if (server) return;
   dataDir = pickDataDir();
   stateFile = path.join(dataDir, 'state.json');
-  try { var saved = JSON.parse(fs.readFileSync(stateFile, 'utf8')); db.progress = saved.progress || {}; db.speed = saved.speed || []; } catch (e) { /* first run */ }
+  try { var saved = JSON.parse(fs.readFileSync(stateFile, 'utf8')); db.progress = saved.progress || {}; db.speed = saved.speed || []; db.lights = saved.lights || {}; } catch (e) { /* first run */ }
+  lightsStart();
   server = http.createServer(route);
   server.requestTimeout = 0;
   server.headersTimeout = 15000;

@@ -1,6 +1,7 @@
 /* Ambient dashboard settings (also read by the Dash Server app for the idle timeout). */
 window.AMBIENT_CONFIG = {
-  theme: 'ink',                       // 'ink' (quiet editorial) | 'poster' (color blocks); preview with ?theme=poster
+  theme: 'ink',                       // 'ink' (quiet editorial) | 'poster' (color blocks) | 'parks' (national park art); preview with ?theme=parks
+  art: { intervalSec: 600, duskAtNight: true },   // parks theme: how often the artwork changes; prefer dusk scenes at night
   location: { name: 'New York', latitude: 40.7128, longitude: -74.006 },
   temperatureUnit: 'fahrenheit',      // 'celsius' | 'fahrenheit'
   clock24h: false,

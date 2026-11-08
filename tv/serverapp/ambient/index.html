@@ -10,7 +10,7 @@
     (function () {
       var m = /[?&]theme=([a-z]+)/.exec(location.search);
       var theme = (m && m[1]) || (window.AMBIENT_CONFIG && window.AMBIENT_CONFIG.theme) || 'ink';
-      if (['ink', 'poster'].indexOf(theme) < 0) theme = 'ink';
+      if (['ink', 'poster', 'parks'].indexOf(theme) < 0) theme = 'ink';
       document.write('<link rel="stylesheet" href="theme-' + theme + '.css">');
       document.documentElement.setAttribute('data-theme', theme);
     })();
@@ -42,6 +42,11 @@
     <section class="clockBlock">
       <div class="time"><span id="hh">--</span><span class="colon">:</span><span id="mm">--</span><span id="ampm"></span></div>
       <div class="dateline"><span id="dow"></span><i class="sep"></i><span id="date"></span><span id="greeting"></span></div>
+    </section>
+
+    <section class="artCaption" id="artCaption">
+      <div class="artPark" id="artPark"></div>
+      <div class="artSub"><span id="artKind">National Park</span><i class="sep"></i><span id="artState"></span></div>
     </section>
 
     <section class="photoFrame" id="photoFrame">
@@ -95,6 +100,7 @@
   <div id="sleepClock" hidden><span id="sleepTime"></span><span id="sleepDate"></span></div>
   <div id="demoTag" hidden>preview data</div>
 
+  <script src="art/parks/manifest.js"></script>
   <script src="ambient.js"></script>
 </body>
 </html>

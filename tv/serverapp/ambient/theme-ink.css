@@ -157,4 +157,5 @@ body[data-mode="sleep"] #backdrop, body[data-mode="sleep"] #stage { opacity: 0; 
 #sleepClock #sleepTime { display: block; font-size: 120px; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 #sleepClock #sleepDate { display: block; margin-top: 14px; font-family: var(--body); font-size: 20px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(226, 205, 180, 0.3); }
 #demoTag { position: absolute; right: 24px; bottom: 18px; font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; }
+.artCaption { display: none; }
 [hidden] { display: none !important; }

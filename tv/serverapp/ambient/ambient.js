@@ -5,11 +5,12 @@
   var STANDALONE = 'standalone' in Q;          // Fire TV / browser: keys don't leave the page
   var THEME = document.documentElement.getAttribute('data-theme') || 'ink';
   var STEPPED = THEME === 'poster';            // poster theme draws the temperature as steps
+  var ART_PACK = THEME === 'parks' ? 'parks' : null;   // themes with bundled artwork instead of the photo service
   var FORCE_DEMO = Q.demo === '1';
   var $ = function (id) { return document.getElementById(id); };
   var SVG = 'http://www.w3.org/2000/svg';
 
-  var S = { weather: null, dash: null, player: null, library: null, torrents: null, photos: [], photoIdx: -1, photoLayer: 0,
+  var S = { weather: null, dash: null, player: null, library: null, torrents: null, photos: [], photoIdx: -1, photoLayer: 0, art: null, artIdx: -1,
     calendar: null, prayer: null, demo: false, coreFails: 0, rotIdx: 0, mode: '', shift: 0 };
 
   // ------------------------------------------------------------ utils
@@ -117,7 +118,11 @@
   }
   function renderCurve(w) {
     var svg = $('wCurve'); svg.textContent = '';
-    var W = 1040, H = 230, padL = 10, padR = 10, top = 46, bottom = 56;
+    // size the drawing to the rendered box so text keeps its proportions in every theme
+    var W = Math.round(svg.clientWidth) || 1040, H = Math.round(svg.clientHeight) || 230;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    var padL = 10, padR = 10, top = Math.round(H * 0.2), bottom = Math.min(56, Math.round(H * 0.38));
+    var compact = H < 160;
     var t = now(), startIdx = 0;
     for (var i = 0; i < w.hourly.time.length; i++) { if (new Date(w.hourly.time[i]) <= t) startIdx = i; else break; }
     var hours = [];
@@ -143,9 +148,10 @@
     svg.appendChild(svgEl('path', { class: 'area', d: d + ' L' + pts[pts.length - 1][0] + ',' + base + ' L' + pts[0][0] + ',' + base + ' Z' }));
     svg.appendChild(svgEl('line', { class: 'grid', x1: padL, x2: W - padR, y1: base, y2: base }));
     // precipitation probability: thin bars under the baseline (only when meaningful)
-    hours.forEach(function (h, i) { if (h.p >= 20) svg.appendChild(svgEl('rect', { class: 'rain', x: x(i) - 3, y: base + 4, width: 6, height: Math.max(3, h.p / 100 * 16), rx: 1.5 })); });
+    var rainH = compact ? 8 : 16, sunY = compact ? base + 20 : base + 32;
+    hours.forEach(function (h, i) { if (h.p >= 20) svg.appendChild(svgEl('rect', { class: 'rain', x: x(i) - 3, y: base + 3, width: 6, height: Math.max(2, h.p / 100 * rainH), rx: 1.5 })); });
     // hour ticks every 6h
-    hours.forEach(function (h, i) { if (i % 6 === 0 && i < hours.length - 1) { var tx = svgEl('text', { class: 'tick', x: x(i), y: H - 8, 'text-anchor': i === 0 ? 'start' : 'middle' }); tx.textContent = i === 0 ? 'NOW' : fmtHour(h.t).toUpperCase(); svg.appendChild(tx); } });
+    hours.forEach(function (h, i) { if (i % 6 === 0 && i < hours.length - 1) { var tx = svgEl('text', { class: 'tick', x: x(i), y: H - 6, 'text-anchor': i === 0 ? 'start' : 'middle' }); tx.textContent = i === 0 ? 'NOW' : fmtHour(h.t).toUpperCase(); svg.appendChild(tx); } });
     // sunrise / sunset marks within the window
     [['sunrise', 'rise'], ['sunset', 'set']].forEach(function (pair) {
       (w.daily[pair[0]] || []).slice(0, 3).forEach(function (iso) {
@@ -153,13 +159,13 @@
         if (frac <= 0.01 || frac >= 0.99) return;
         var sx = padL + (W - padL - padR) * frac;
         svg.appendChild(svgEl('line', { class: 'sun', x1: sx, x2: sx, y1: base - 10, y2: base + 1 }));
-        var lbl = svgEl('text', { class: 'sunLbl', x: sx, y: base + 32, 'text-anchor': 'middle' }); lbl.textContent = (pair[1] === 'rise' ? '☀ ' : '☾ ') + fmtShort(st); svg.appendChild(lbl);
+        var lbl = svgEl('text', { class: 'sunLbl', x: sx, y: sunY, 'text-anchor': compact ? (frac > 0.8 ? 'end' : 'start') : 'middle' }); lbl.textContent = (pair[1] === 'rise' ? '☀ ' : '☾ ') + fmtShort(st); svg.appendChild(lbl);
       });
     });
     svg.appendChild(svgEl('path', { class: 'line', d: d }));
     // selective labels: high and low only
     var hiI = vals.indexOf(Math.max.apply(null, vals)), loI = vals.indexOf(Math.min.apply(null, vals));
-    [[hiI, -14], [loI, -14]].forEach(function (pr) {
+    [[hiI, compact ? -8 : -14], [loI, compact ? -8 : -14]].forEach(function (pr) {
       var i = pr[0]; if (i === 0) return;
       var lb = svgEl('text', { class: 'lbl', x: Math.min(W - 24, Math.max(24, x(i))), y: y(hours[i].v) + pr[1], 'text-anchor': 'middle' }); lb.textContent = Math.round(hours[i].v) + '°'; svg.appendChild(lb);
     });
@@ -184,7 +190,7 @@
     return getJSON(C.services.torrents + '/api/state', 4000).then(function (d) { S.torrents = d; renderHouse(); }).catch(function () { if (!S.torrents && S.demo) S.torrents = demoTorrents(); });
   }
   function loadPhotos() {
-    if (C.backdrop === 'aurora') return;
+    if (C.backdrop === 'aurora' || ART_PACK) return;
     getJSON(C.services.photos + '/api/photos', 4000).then(function (d) {
       S.photos = (d.photos || []).map(function (p) { return C.services.photos + '/photos/' + encodeURIComponent(p.name); });
       if (S.photos.length && S.photoIdx < 0) nextPhoto();
@@ -204,6 +210,53 @@
       S.photoLayer = 1 - S.photoLayer; document.body.classList.add('photos');
     };
     img.src = S.photos[idx];
+  }
+
+  // ------------------------------------------------------------ art pack (parks theme)
+
+  function hexToHsl(hex) {
+    var r = parseInt(hex.slice(1, 3), 16) / 255, g = parseInt(hex.slice(3, 5), 16) / 255, b = parseInt(hex.slice(5, 7), 16) / 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, h = 0, sat = 0;
+    if (max !== min) {
+      var d = max - min; sat = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4; h /= 6;
+    }
+    return [h, sat, l];
+  }
+  function hsl(h, s, l) { return 'hsl(' + Math.round(h * 360) + ',' + Math.round(s * 100) + '%,' + Math.round(l * 100) + '%)'; }
+  function loadArt() {
+    if (!ART_PACK) return;
+    var list = (window.ART_PACKS || {})[ART_PACK];   // art/<pack>/manifest.js, loaded by a script tag so it works from file://
+    if (!list || !list.length) { console.error('art pack missing', ART_PACK); return; }
+    S.art = list.map(function (a) { a.lum = hexToHsl(a.dominant)[2]; return a; });
+    nextArt();
+  }
+  function nextArt() {
+    if (!S.art || !S.art.length || S.mode === 'sleep') return;
+    var pool = S.art;
+    if (C.art && C.art.duskAtNight && S.mode === 'night') { var dusk = S.art.filter(function (a) { return a.lum < 0.42; }); if (dusk.length > 3) pool = dusk; }
+    var pick, tries = 0;
+    do { pick = pool[Math.floor(Math.random() * pool.length)]; tries++; } while (S.art.indexOf(pick) === S.artIdx && tries < 5);
+    S.artIdx = S.art.indexOf(pick);
+    var img = new Image();
+    img.onload = function () {
+      var inL = $(S.photoLayer ? 'photoA' : 'photoB'), outL = $(S.photoLayer ? 'photoB' : 'photoA');
+      inL.style.backgroundImage = 'url("art/' + ART_PACK + '/' + pick.file + '")'; inL.classList.add('on'); outL.classList.remove('on');
+      S.photoLayer = 1 - S.photoLayer; document.body.classList.add('photos');
+      var acc = hexToHsl(pick.accent), dark = hexToHsl(pick.dark), light = hexToHsl(pick.light);
+      var root = document.documentElement.style;
+      root.setProperty('--art-accent', hsl(acc[0], Math.min(0.85, acc[1] + 0.1), Math.max(0.62, acc[2])));
+      root.setProperty('--art-dark', hsl(dark[0], Math.min(0.5, dark[1]), Math.min(0.14, dark[2])));
+      root.setProperty('--art-light', hsl(light[0], Math.min(0.4, light[1]), Math.max(0.9, light[2])));
+      root.setProperty('--art-dominant', pick.dominant);
+      var cap = $('artCaption'); cap.classList.add('swap');
+      setTimeout(function () {
+        var el = $('artPark'), avail = $('artCaption').clientWidth || 560;
+        el.style.fontSize = Math.max(54, Math.min(112, Math.floor(avail / (pick.park.length * 0.5)))) + 'px';
+        el.textContent = pick.park; $('artState').textContent = pick.state; cap.classList.remove('swap');
+      }, 900);
+    };
+    img.src = 'art/' + ART_PACK + '/' + pick.file;
   }
 
   function loadCalendar() {
@@ -424,6 +477,7 @@
   else { loadCore(); loadTorrents(); }
   setInterval(function () { if (!FORCE_DEMO) { loadCore(); loadTorrents(); } }, 10000);
   loadPhotos(); setInterval(loadPhotos, 5 * 60000); setInterval(nextPhoto, (C.photoIntervalSec || 90) * 1000);
+  loadArt(); setInterval(nextArt, ((C.art && C.art.intervalSec) || 600) * 1000);
   loadCalendar(); setInterval(loadCalendar, 15 * 60000);
   loadPrayer(); setInterval(loadPrayer, 6 * 3600000);
   setInterval(function () { renderRotate(true); }, (C.rotateSec || 25) * 1000);

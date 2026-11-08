@@ -1,0 +1,6 @@
+build/
+Payload/
+*.ipa
+*.xcodeproj
+*.xcworkspace
+DashRemote/Info.plist

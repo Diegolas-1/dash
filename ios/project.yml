@@ -1,0 +1,43 @@
+# XcodeGen spec. CI runs `xcodegen generate` then xcodebuild; the .xcodeproj is not committed.
+name: DashRemote
+options:
+  bundleIdPrefix: local.dash
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGNING_ALLOWED: "NO"
+    CODE_SIGNING_REQUIRED: "NO"
+    CODE_SIGN_IDENTITY: ""
+    DEVELOPMENT_TEAM: ""
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  DashRemote:
+    type: application
+    platform: iOS
+    sources: [DashRemote]
+    info:
+      path: DashRemote/Info.plist
+      properties:
+        CFBundleDisplayName: Dash Remote
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UIRequiresFullScreen: true
+        ITSAppUsesNonExemptEncryption: false
+        NSLocalNetworkUsageDescription: Dash Remote talks to your TV over your home Wi-Fi.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+          NSAllowsArbitraryLoads: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: local.dash.remote
+        GENERATE_INFOPLIST_FILE: "NO"
+        INFOPLIST_FILE: DashRemote/Info.plist

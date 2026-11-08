@@ -25,6 +25,9 @@
 - `tv/tools/set-password.js` – writes `tv/<app>/service/auth.js` (gitignored); `DASH_PASSWORD=... node tv/tools/set-password.js --app homeapp|torrentapp|serverapp`, never the prompt
 - `tv/deploy.py` – `--app homeapp|torrentapp|serverapp`: build (npm), package, `sdb connect`, install, run
 
+## iPhone companion (`ios/`)
+SwiftUI app "Dash Remote" (iOS 16+, no dependencies): finds the TV (LAN scan of :8001), pairs and sends keys/text over Samsung's remote WebSocket (`:8002`, self-signed cert trusted in the session delegate), launches apps, Wake-on-LAN, a Setup checklist, and a WKWebView tab for the TV-hosted pages (:8090/:8091/:8092), which is how most new features reach the phone without re-sideloading. Built by `.github/workflows/ios.yml` on a macOS runner with XcodeGen (`ios/project.yml`; the `.xcodeproj` is generated, not committed) into an **unsigned** `DashRemote-unsigned.ipa` artifact (push to `ios/**`, or tag `ios-v*` for a Release). The user signs and sideloads it themselves. Nothing here can be compiled locally: after changing Swift, push and read the Actions log (`mcp__github__get_job_logs`), fix, repeat.
+
 ## Remote (Samsung BN59-01315A layout)
 Shared map `tv/common/remote.js` (copied into each app as `js/remote.js` / `ambient/remote.js` by `tv/tools/sync-common.js`, which `deploy.py` runs). Buttons the TV keeps: Power, Source, Vol, Mute, Home, Settings, Netflix / Prime Video / Hulu (TV launches them). Deliverable and registered: 0-9, -, PRE-CH, CH ±, CH LIST, Guide, Info, CC/VD, Exit, A/B/C/D, transport keys. When guiding the user, name buttons as printed on this remote (A=red, B=green, C=yellow, D=blue; OK = the centre button; "Return" not "Back").
 | Button | Home screen | Dash Server | Player (Dash Server) | Torrents | Ambient |

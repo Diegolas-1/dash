@@ -101,8 +101,8 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 
 /* ---------- right column: trail-sign plaques ---------- */
 /* The sidebar hangs off the poster frame: flush with the top and right rules, resting on the caption band. */
-#stage .column { position: absolute; top: 33px; right: 33px; bottom: 280px; width: 470px; display: flex; flex-direction: column; gap: 0; min-height: 0; overflow: hidden;
-  background: var(--art-dark); opacity: 0.92; border-left: 3px double var(--cream-2); box-shadow: -14px 0 34px rgba(0,0,0,.25); transition: background var(--t-slow); }
+#stage .column { position: absolute; top: 33px; right: 33px; bottom: 277px; width: 470px; display: flex; flex-direction: column; gap: 0; min-height: 0; overflow: hidden;
+  background: var(--art-dark); opacity: 0.92; border-left: 3px double var(--cream-2); border-bottom: 3px double var(--cream-2); box-shadow: -14px 0 34px rgba(0,0,0,.25); transition: background var(--t-slow); }
 .panel.rotate { flex-shrink: 4; }   /* gives way first when the column is tight */
 .panel.lights { flex: 1 0 auto; }   /* the bottom plaque stretches down to the band */
 .panel { background: transparent; border: 0; border-top: 1px solid var(--cream-3); padding: 18px 22px 20px; position: relative; box-shadow: none; flex: 0 1 auto; min-height: 0; }

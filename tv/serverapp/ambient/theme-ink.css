@@ -1,4 +1,5 @@
-/* Ambient dashboard: 1920x1080, meant to be looked at from across a room. */
+/* Theme "Ink": quiet editorial. 1920x1080, meant to be looked at from across a room. */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Instrument+Sans:wght@400;500;600&display=swap');
 :root {
   --bg: #0B1114;
   --ink: #EDE6D8;
@@ -78,6 +79,9 @@ body.photos .vignette { background: radial-gradient(120% 90% at 30% 20%, transpa
 .wSub { margin-top: 8px; font-size: 22px; color: var(--ink-2); letter-spacing: 0.02em; }
 #wCurve { display: block; width: 1040px; height: 230px; margin-top: 26px; overflow: visible; }
 #wCurve .area { fill: url(#curveFill); }
+#wCurve stop.s0 { stop-color: var(--amber); stop-opacity: 0.22; }
+#wCurve stop.s1 { stop-color: var(--amber); stop-opacity: 0; }
+.photoFrame { display: none; }
 #wCurve .line { fill: none; stroke: var(--amber); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 #wCurve .grid { stroke: var(--line); stroke-width: 1; }
 #wCurve .tick { fill: var(--ink-3); font-family: var(--body); font-size: 17px; letter-spacing: 0.06em; }

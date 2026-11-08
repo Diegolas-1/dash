@@ -5,8 +5,16 @@
   <meta name="viewport" content="width=1920, height=1080">
   <title>Ambient</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="ambient.css">
+  <script src="config.js"></script>
+  <script>
+    (function () {
+      var m = /[?&]theme=([a-z]+)/.exec(location.search);
+      var theme = (m && m[1]) || (window.AMBIENT_CONFIG && window.AMBIENT_CONFIG.theme) || 'ink';
+      if (['ink', 'poster'].indexOf(theme) < 0) theme = 'ink';
+      document.write('<link rel="stylesheet" href="theme-' + theme + '.css">');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
 </head>
 <body data-mode="day">
   <svg width="0" height="0" class="defs" aria-hidden="true">
@@ -36,12 +44,18 @@
       <div class="dateline"><span id="dow"></span><i class="sep"></i><span id="date"></span><span id="greeting"></span></div>
     </section>
 
-    <section class="weather" id="weather" hidden>
+    <section class="photoFrame" id="photoFrame">
+      <div class="pf" id="pfA"></div>
+      <div class="pf" id="pfB"></div>
+      <div class="pfEmpty" id="pfEmpty"><div class="disc"></div><div class="pfText" id="pfText"></div></div>
+    </section>
+
+    <section class="weather" id="weather">
       <div class="wNow">
         <svg class="wIcon"><use id="wIconUse" href="#i-sun"/></svg>
         <div class="wTemp"><span id="wTemp">--</span><span class="deg">°</span></div>
         <div class="wText">
-          <div class="wDesc" id="wDesc"></div>
+          <div class="wDesc" id="wDesc">Fetching the forecast…</div>
           <div class="wSub" id="wSub"></div>
         </div>
       </div>
@@ -81,7 +95,6 @@
   <div id="sleepClock" hidden><span id="sleepTime"></span><span id="sleepDate"></span></div>
   <div id="demoTag" hidden>preview data</div>
 
-  <script src="config.js"></script>
   <script src="ambient.js"></script>
 </body>
 </html>

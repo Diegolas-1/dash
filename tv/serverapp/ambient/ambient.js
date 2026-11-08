@@ -3,6 +3,8 @@
   var C = window.AMBIENT_CONFIG || {};
   var Q = parseQuery(location.search);
   var STANDALONE = 'standalone' in Q;          // Fire TV / browser: keys don't leave the page
+  var THEME = document.documentElement.getAttribute('data-theme') || 'ink';
+  var STEPPED = THEME === 'poster';            // poster theme draws the temperature as steps
   var FORCE_DEMO = Q.demo === '1';
   var $ = function (id) { return document.getElementById(id); };
   var SVG = 'http://www.w3.org/2000/svg';
@@ -99,6 +101,10 @@
     var d0 = w.daily;
     $('wSub').textContent = 'H ' + Math.round(d0.temperature_2m_max[0]) + '°  L ' + Math.round(d0.temperature_2m_min[0]) + '°   ·   feels ' + Math.round(cur.apparent_temperature) + '°   ·   wind ' + Math.round(cur.wind_speed_10m) + ' mph';
     renderCurve(w);
+    var t0 = now(), nextSun = null;
+    [].concat(d0.sunrise || [], d0.sunset || []).forEach(function (iso) { var dt = new Date(iso); if (dt > t0 && (!nextSun || dt < nextSun.dt)) nextSun = { dt: dt, rise: (d0.sunrise || []).indexOf(iso) >= 0 }; });
+    $('pfText').textContent = nextSun ? (nextSun.rise ? 'Sunrise ' : 'Sunset ') + fmtShort(nextSun.dt) : '';
+    $('pfEmpty').classList.toggle('night', !cur.is_day);
     var days = $('wDays'); days.textContent = '';
     for (var i = 1; i < Math.min(6, d0.time.length); i++) {
       var dt = new Date(d0.time[i] + 'T12:00:00'), di = wmo(d0.weather_code[i], 1), row = el('div', 'wDay');
@@ -122,13 +128,14 @@
     var x = function (i) { return padL + (W - padL - padR) * i / (hours.length - 1); };
     var y = function (v) { return top + (H - top - bottom) * (1 - (v - min) / (max - min)); };
     var defs = svgEl('defs', {}), grad = svgEl('linearGradient', { id: 'curveFill', x1: '0', y1: '0', x2: '0', y2: '1' });
-    grad.appendChild(svgEl('stop', { offset: '0', 'stop-color': '#E0A458', 'stop-opacity': '0.22' }));
-    grad.appendChild(svgEl('stop', { offset: '1', 'stop-color': '#E0A458', 'stop-opacity': '0' }));
+    grad.appendChild(svgEl('stop', { offset: '0', class: 's0' }));
+    grad.appendChild(svgEl('stop', { offset: '1', class: 's1' }));
     defs.appendChild(grad); svg.appendChild(defs);
     // smooth path (Catmull-Rom -> cubic)
     var pts = hours.map(function (h, i) { return [x(i), y(h.v)]; });
     var d = 'M' + pts[0][0] + ',' + pts[0][1];
     for (var k = 0; k < pts.length - 1; k++) {
+      if (STEPPED) { d += ' H' + pts[k + 1][0] + ' V' + pts[k + 1][1]; continue; }
       var p0 = pts[k - 1] || pts[k], p1 = pts[k], p2 = pts[k + 1], p3 = pts[k + 2] || p2;
       d += ' C' + (p1[0] + (p2[0] - p0[0]) / 6) + ',' + (p1[1] + (p2[1] - p0[1]) / 6) + ' ' + (p2[0] - (p3[0] - p1[0]) / 6) + ',' + (p2[1] - (p3[1] - p1[1]) / 6) + ' ' + p2[0] + ',' + p2[1];
     }
@@ -136,7 +143,7 @@
     svg.appendChild(svgEl('path', { class: 'area', d: d + ' L' + pts[pts.length - 1][0] + ',' + base + ' L' + pts[0][0] + ',' + base + ' Z' }));
     svg.appendChild(svgEl('line', { class: 'grid', x1: padL, x2: W - padR, y1: base, y2: base }));
     // precipitation probability: thin bars under the baseline (only when meaningful)
-    hours.forEach(function (h, i) { if (h.p >= 20) svg.appendChild(svgEl('rect', { class: 'rain', x: x(i) - 3, y: base + 4, width: 6, height: Math.max(3, h.p / 100 * 22), rx: 1.5 })); });
+    hours.forEach(function (h, i) { if (h.p >= 20) svg.appendChild(svgEl('rect', { class: 'rain', x: x(i) - 3, y: base + 4, width: 6, height: Math.max(3, h.p / 100 * 16), rx: 1.5 })); });
     // hour ticks every 6h
     hours.forEach(function (h, i) { if (i % 6 === 0 && i < hours.length - 1) { var tx = svgEl('text', { class: 'tick', x: x(i), y: H - 8, 'text-anchor': i === 0 ? 'start' : 'middle' }); tx.textContent = i === 0 ? 'NOW' : fmtHour(h.t).toUpperCase(); svg.appendChild(tx); } });
     // sunrise / sunset marks within the window
@@ -146,13 +153,13 @@
         if (frac <= 0.01 || frac >= 0.99) return;
         var sx = padL + (W - padL - padR) * frac;
         svg.appendChild(svgEl('line', { class: 'sun', x1: sx, x2: sx, y1: base - 10, y2: base + 1 }));
-        var lbl = svgEl('text', { class: 'sunLbl', x: sx, y: base + 18, 'text-anchor': 'middle' }); lbl.textContent = (pair[1] === 'rise' ? '☀ ' : '☾ ') + fmtShort(st); svg.appendChild(lbl);
+        var lbl = svgEl('text', { class: 'sunLbl', x: sx, y: base + 32, 'text-anchor': 'middle' }); lbl.textContent = (pair[1] === 'rise' ? '☀ ' : '☾ ') + fmtShort(st); svg.appendChild(lbl);
       });
     });
     svg.appendChild(svgEl('path', { class: 'line', d: d }));
     // selective labels: high and low only
     var hiI = vals.indexOf(Math.max.apply(null, vals)), loI = vals.indexOf(Math.min.apply(null, vals));
-    [[hiI, -14], [loI, 26]].forEach(function (pr) {
+    [[hiI, -14], [loI, -14]].forEach(function (pr) {
       var i = pr[0]; if (i === 0) return;
       var lb = svgEl('text', { class: 'lbl', x: Math.min(W - 24, Math.max(24, x(i))), y: y(hours[i].v) + pr[1], 'text-anchor': 'middle' }); lb.textContent = Math.round(hours[i].v) + '°'; svg.appendChild(lb);
     });
@@ -192,6 +199,8 @@
     img.onload = function () {
       var inL = $(S.photoLayer ? 'photoA' : 'photoB'), outL = $(S.photoLayer ? 'photoB' : 'photoA');
       inL.style.backgroundImage = 'url("' + S.photos[idx] + '")'; inL.classList.add('on'); outL.classList.remove('on');
+      var fIn = $(S.photoLayer ? 'pfA' : 'pfB'), fOut = $(S.photoLayer ? 'pfB' : 'pfA');
+      fIn.style.backgroundImage = inL.style.backgroundImage; fIn.classList.add('on'); fOut.classList.remove('on');
       S.photoLayer = 1 - S.photoLayer; document.body.classList.add('photos');
     };
     img.src = S.photos[idx];

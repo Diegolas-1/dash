@@ -41,3 +41,4 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: local.dash.remote
         GENERATE_INFOPLIST_FILE: "NO"
         INFOPLIST_FILE: DashRemote/Info.plist
+

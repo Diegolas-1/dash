@@ -174,7 +174,7 @@
     var url = d && d.ip ? 'Phone: http://' + d.ip + ':' + d.port + (d.configured ? '' : ' (password not set)') + '   ·   ' : '';
     if (S.view === 'library') return url + 'OK: open/play   ·   Back: up a level   ·   Blue: rescan drives';
     if (S.view === 'dashboard') return url + 'OK on a service: start it   ·   OK on Speed: run test   ·   Blue: refresh logs';
-    return url + 'Left/Right on tabs to switch   ·   OK: open';
+    return url + 'Left/Right on tabs to switch   ·   OK: open   ·   Yellow: ambient screen';
   }
 
   function posterCard(it, key, sub) {
@@ -227,7 +227,7 @@
     var dock = $('homeDock'); dock.textContent = '';
     [['Library', 'lib', function () { setView('library'); }], ['Dashboard', 'dash', function () { setView('dashboard'); }],
       ['Rescan drives', 'rescan', function () { toast('Rescanning…'); sendStorageHints(); loadLib(true); }],
-      ['Speed test', 'speed', runSpeedTest], ['Torrents', 'torr', function () { launchApp(APPS.torrents, 'Torrents'); }], ['Home screen', 'home', function () { launchApp(APPS.home, 'Home screen'); }]]
+      ['Ambient', 'ambient', goAmbient], ['Speed test', 'speed', runSpeedTest], ['Torrents', 'torr', function () { launchApp(APPS.torrents, 'Torrents'); }], ['Home screen', 'home', function () { launchApp(APPS.home, 'Home screen'); }]]
       .forEach(function (a) { var c = el('div', 'card', a[0]); c.setAttribute('data-key', 'dock-' + a[1]); c._action = a[2]; dock.appendChild(c); });
   }
 
@@ -567,6 +567,7 @@
       case KEY.ENTER: activate(); break;
       case KEY.BACK: case KEY.ESC: back(); break;
       case KEY.BLUE: if (S.view === 'dashboard') loadDash(true); else { toast('Rescanning drives…'); sendStorageHints(); loadLib(true); } break;
+      case KEY.YELLOW: goAmbient(); break;
       default: return;
     }
     e.preventDefault();
@@ -575,6 +576,17 @@
     if (document.hidden) { if (S.playing && !S.playing.paused) togglePause(); }
     else { sendStorageHints(); sendSystemHints(); loadLib(false); loadDash(false); }
   });
+
+  // ------------------------------------------------------------ ambient (idle screen)
+
+  var AMB = window.AMBIENT_CONFIG || {};
+  var lastInput = Date.now();
+  function goAmbient() { saveProgress(); location.href = 'ambient/index.html'; }
+  document.addEventListener('keydown', function () { lastInput = Date.now(); }, true);
+  setInterval(function () {
+    if (!AMB.idleMinutes || S.playing || document.hidden) return;
+    if (Date.now() - lastInput > AMB.idleMinutes * 60000) goAmbient();
+  }, 15000);
 
   // ------------------------------------------------------------ boot
 

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>Ambient</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="ambient.css">
+</head>
+<body data-mode="day">
+  <svg width="0" height="0" class="defs" aria-hidden="true">
+    <defs>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.2A8.3 8.3 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2z"/></symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5h10.2a3.8 3.8 0 0 0 .6-7.6 5.6 5.6 0 0 0-10.8-1.4A4.5 4.5 0 0 0 7 18.5z"/></symbol>
+      <symbol id="i-cloud-sun" viewBox="0 0 24 24"><path d="M9 19h8.4a3.3 3.3 0 0 0 .5-6.6 4.9 4.9 0 0 0-9.4-1.2A3.9 3.9 0 0 0 9 19z"/><path d="M6 10.4a3.6 3.6 0 0 1 5.9-3.1M8.4 3.2v1.6M3.2 8.4h1.6M4.7 4.7l1.1 1.1"/></symbol>
+      <symbol id="i-rain" viewBox="0 0 24 24"><path d="M7 15.5h10.2a3.6 3.6 0 0 0 .6-7.2 5.4 5.4 0 0 0-10.4-1.3A4.3 4.3 0 0 0 7 15.5z"/><path d="M9 18.5l-1 2.5M13 18.5l-1 2.5M17 18.5l-1 2.5"/></symbol>
+      <symbol id="i-snow" viewBox="0 0 24 24"><path d="M7 14.5h10.2a3.6 3.6 0 0 0 .6-7.2 5.4 5.4 0 0 0-10.4-1.3A4.3 4.3 0 0 0 7 14.5z"/><path d="M9 18v3M7.7 18.8l2.6 1.4M7.7 20.2l2.6-1.4M15 18v3M13.7 18.8l2.6 1.4M13.7 20.2l2.6-1.4"/></symbol>
+      <symbol id="i-fog" viewBox="0 0 24 24"><path d="M4 10h16M6 14h12M8 18h8"/></symbol>
+      <symbol id="i-storm" viewBox="0 0 24 24"><path d="M7 14.5h10.2a3.6 3.6 0 0 0 .6-7.2 5.4 5.4 0 0 0-10.4-1.3A4.3 4.3 0 0 0 7 14.5z"/><path d="M12.5 15l-2.2 3.6h3.2L11.6 22"/></symbol>
+    </defs>
+  </svg>
+
+  <div id="backdrop">
+    <div class="aurora"><i class="a1"></i><i class="a2"></i><i class="a3"></i></div>
+    <div class="photo" id="photoA"></div>
+    <div class="photo" id="photoB"></div>
+    <div class="grain"></div>
+    <div class="vignette"></div>
+  </div>
+
+  <main id="stage">
+    <section class="clockBlock">
+      <div class="time"><span id="hh">--</span><span class="colon">:</span><span id="mm">--</span><span id="ampm"></span></div>
+      <div class="dateline"><span id="dow"></span><i class="sep"></i><span id="date"></span><span id="greeting"></span></div>
+    </section>
+
+    <section class="weather" id="weather" hidden>
+      <div class="wNow">
+        <svg class="wIcon"><use id="wIconUse" href="#i-sun"/></svg>
+        <div class="wTemp"><span id="wTemp">--</span><span class="deg">°</span></div>
+        <div class="wText">
+          <div class="wDesc" id="wDesc"></div>
+          <div class="wSub" id="wSub"></div>
+        </div>
+      </div>
+      <svg id="wCurve" viewBox="0 0 1040 230" preserveAspectRatio="none"></svg>
+      <div class="wDays" id="wDays"></div>
+    </section>
+
+    <aside class="column">
+      <article class="panel media" id="pMedia" hidden>
+        <div class="eyebrow" id="mediaEyebrow">Now playing</div>
+        <div class="mediaRow">
+          <div class="poster" id="mediaPoster"></div>
+          <div class="mediaText">
+            <div class="mediaTitle" id="mediaTitle"></div>
+            <div class="mediaSub" id="mediaSub"></div>
+            <div class="track"><i id="mediaBar"></i></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel rotate" id="pRotate" hidden>
+        <div class="eyebrow" id="rotEyebrow"></div>
+        <div class="rotBody" id="rotBody"></div>
+      </article>
+
+      <article class="panel house" id="pHouse" hidden>
+        <div class="eyebrow">The house</div>
+        <div class="services" id="services"></div>
+        <div class="rings" id="rings"></div>
+        <div class="netline" id="netline"></div>
+      </article>
+    </aside>
+
+    <footer class="statusline" id="statusline"></footer>
+  </main>
+
+  <div id="sleepClock" hidden><span id="sleepTime"></span><span id="sleepDate"></span></div>
+  <div id="demoTag" hidden>preview data</div>
+
+  <script src="config.js"></script>
+  <script src="ambient.js"></script>
+</body>
+</html>

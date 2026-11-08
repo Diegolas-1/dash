@@ -31,7 +31,7 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 .grain { opacity: 0.09; mix-blend-mode: multiply; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.15 0 0 0 0 0.1 0 0 0 0.7 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"); }
 .vignette { background: linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.18) 16%, transparent 30%, transparent 60%, rgba(0,0,0,0.25)); }
 
-/* poster frame: double rule inset from the edge */
+/* poster frame: solid rule inset from the edge (same 3px rule as the band and sidebar) */
 #stage::before { content: ""; position: absolute; inset: 30px; border: 3px solid var(--cream-2); pointer-events: none; z-index: 1; transition: border-color var(--t-slow); }
 /* caption band */
 #stage::after { content: ""; position: absolute; left: 30px; right: 30px; bottom: 30px; height: 250px; z-index: 2; background: var(--art-dark); opacity: var(--band-alpha); border: 3px solid var(--cream-2); transition: background var(--t-slow); }

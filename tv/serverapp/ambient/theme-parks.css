@@ -51,7 +51,7 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 .photoFrame { display: none; }
 
 /* ---------- band: clock ---------- */
-.clockBlock { grid-area: clock; align-self: end; padding-bottom: 6px; }
+.clockBlock { grid-area: clock; align-self: center; padding-bottom: 0; }
 .time { font-family: var(--display); font-weight: 900; font-size: 158px; line-height: 0.82; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; display: flex; align-items: baseline; color: var(--cream); }
 .time .colon { opacity: 0.6; margin: 0 0.02em; transform: translateY(-0.03em); }
 .time #ampm { font-family: var(--display); font-weight: 700; font-size: 34px; letter-spacing: 0.1em; margin-left: 12px; color: var(--art-accent); transform: translateY(-2.2em); }
@@ -67,16 +67,16 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 .artSub .sep, .artSub #artKind { display: none; }
 
 /* ---------- band: weather now ---------- */
-.wNow { grid-area: now; align-self: end; display: flex; align-items: flex-end; gap: 18px; padding-bottom: 8px; padding-left: 20px; }
-.wIcon { width: 54px; height: 54px; color: var(--cream-2); margin-bottom: 14px; flex: 0 0 auto; }
+.wNow { grid-area: now; align-self: center; display: flex; align-items: center; gap: 18px; padding-bottom: 0; padding-left: 20px; }
+.wIcon { width: 54px; height: 54px; color: var(--cream-2); margin-bottom: 0; flex: 0 0 auto; }
 .wTemp { font-family: var(--display); font-weight: 900; font-size: 128px; line-height: 0.82; display: flex; align-items: flex-start; color: var(--cream); }
 .wTemp .deg { font-size: 48px; margin-top: 2px; color: var(--art-accent); font-weight: 700; }
-.wText { padding-left: 18px; border-left: 1px solid var(--cream-3); margin-bottom: 6px; min-width: 0; flex: 1; }
+.wText { padding-left: 18px; border-left: 1px solid var(--cream-3); margin-bottom: 0; min-width: 0; flex: 1; }
 .wDesc { font-family: var(--serif); font-style: italic; font-size: 30px; line-height: 1.1; color: var(--cream); }
 .wSub { margin-top: 8px; font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cream-2); }
 
 /* ---------- band: forecast ---------- */
-.wDays { grid-area: days; align-self: end; display: flex; width: 100%; padding-bottom: 12px; border-top: 1px solid var(--cream-3); padding-top: 12px; }
+.wDays { grid-area: days; align-self: center; display: flex; width: 100%; padding: 14px 0; border-top: 1px solid var(--cream-3); border-bottom: 1px solid var(--cream-3); }
 .wDay { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 15px; color: var(--cream-2); border-left: 1px solid rgba(242,232,207,.14); }
 .wDay:first-child { border-left: 0; }
 .wDay svg { width: 24px; height: 24px; color: var(--cream-2); }

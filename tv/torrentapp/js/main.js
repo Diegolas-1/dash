@@ -284,6 +284,7 @@
 
   function play(t, f) {
     stopPlayback(true);
+    if (window.AndroidHost) { window.AndroidHost.play(BASE + '/stream/' + t.infoHash + '/' + f.index, f.name, 0, ''); return; }
     S.playing = { hash: t.infoHash, file: f.index, name: f.name, buffering: 0, paused: false, pos: 0, dur: 0 };
     document.body.classList.add('playing');
     $('osdTitle').textContent = f.name;

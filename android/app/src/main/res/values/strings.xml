@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Dash TV</string>
+    <string name="service_channel">Dash services</string>
+    <string name="service_running">Dash services are running</string>
+</resources>

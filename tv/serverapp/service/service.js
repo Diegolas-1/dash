@@ -54,6 +54,12 @@ var SERVICES = [
 
 var auth = null;
 try { auth = require('./auth.js'); } catch (e) { auth = null; }
+// No auth.js (e.g. Android build): derive the phone-page password from the environment at start.
+if (!auth && process.env.DASH_PASSWORD) {
+  var envSalt = crypto.randomBytes(16);
+  auth = { salt: envSalt.toString('hex'), hash: crypto.scryptSync(process.env.DASH_PASSWORD, envSalt, 32, { N: 16384, r: 8, p: 1 }).toString('hex'), N: 16384, r: 8, p: 1 };
+}
+
 
 // ---------------------------------------------------------------- ring log
 var LOG_MAX = 300;
@@ -126,9 +132,10 @@ function usbRoots() {
   function add(p) { if (p && roots.indexOf(p) < 0 && fs.existsSync(p)) roots.push(p); }
   (process.env.DASH_USB_ROOTS || '').split(path.delimiter).forEach(add);
   storageHints.forEach(add);
-  ['/opt/media'].forEach(function (base) {   // Samsung TVs mount USB drives here
+  ['/opt/media', '/storage'].forEach(function (base) {   // Samsung: /opt/media/USBDriveA1 · Android/Fire TV: /storage/<uuid>
     try {
       fs.readdirSync(base).forEach(function (n) {
+        if (base === '/storage' && (n === 'emulated' || n === 'self' || n === 'enc_emulated')) return;
         var p = path.join(base, n);
         try { if (fs.statSync(p).isDirectory()) add(p); } catch (e) { /* skip */ }
       });

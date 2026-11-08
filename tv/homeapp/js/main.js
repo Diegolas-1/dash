@@ -254,6 +254,7 @@
   function renderHint(configured) {
     var parts = [];
     if (state.uploadUrl) parts.push('Add photos: ' + state.uploadUrl + (configured ? '' : ' (password not set)'));
+    if (window.AndroidHost) { try { parts.push('Phone PIN: ' + window.AndroidHost.pin()); } catch (e) { /* no bridge */ } }
     parts.push('Red: dim  ·  Green: next photo  ·  Yellow: screensaver');
     $('hint').textContent = parts.join('  \u00B7  ');
   }

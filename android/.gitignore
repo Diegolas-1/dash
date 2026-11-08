@@ -1,0 +1,9 @@
+build/
+.gradle/
+app/build/
+app/libnode/
+app/src/main/assets/
+app/.cxx/
+local.properties
+*.jks
+*.apk

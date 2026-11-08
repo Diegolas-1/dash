@@ -1,6 +1,17 @@
 # CLAUDE.md
 
-`Index` is a standalone iOS Shortcut launcher page. Everything else lives in `tv/`: tooling to customize a Samsung Tizen TV (privacy settings, ad reduction, custom home-screen app).
+Goal: a TV the user fully owns and controls, not tied to a brand. **Target platform: Fire TV (Android / Fire OS)**, delivered as one sideloaded APK (`android/`) that hosts the web UIs and the Node services built under `tv/`. The Samsung/Tizen tooling in `tv/` (tv.py, camera loop, Tizen packages, deploy.py, the BN59 remote table) is **legacy**: keep it compiling but don't extend it; new work targets Fire TV. `Index` is a standalone iOS Shortcut launcher page.
+
+## Fire TV app (`android/`)
+- One Android app "Dash TV" (`local.dash.tv`, minSdk 25 = Fire OS 6, Kotlin): `MainActivity` is a full-screen WebView loading `file:///android_asset/www/<app>/index.html` (homeapp by default; `serverapp`, `serverapp/ambient`, `torrentapp`). `NodeService` is a foreground service running **nodejs-mobile** (embedded Node 18, `libnode.so` downloaded by CI) with `android/node/main.js`, which starts the three services in one process; env vars carry data dirs (`DASH_PHOTO_DIR/…`), USB roots (`/storage/*`), the phone-page `DASH_PASSWORD` (a 6-digit PIN generated on first run, shown in the home screen hint) and `GOVEE_API_KEY`. `PlayerActivity` plays MKV/AVI/MP4 with ExoPlayer (media3); pages call `AndroidHost.play(url,title,startSec,itemId)` and get `window.onAndroidPlayback(id,pos,dur)` back. `BootReceiver` starts the services at boot.
+- `tv/common/host.js` (synced into every app as `js/host.js`, loaded before `remote.js`) defines a `tizen` shim when `window.AndroidHost` exists, so the UIs' Tizen calls (launch, hide, registerKey) work unchanged. Remote keys: `MainActivity.dispatchKeyEvent` translates Fire TV/Android keycodes to the Tizen codes the UIs use (Back→10009, Menu→Info 457, media keys, colors, digits); D-pad/OK go to the WebView natively.
+- Build: `.github/workflows/android.yml` (ubuntu): NDK + CMake, nodejs-mobile download, `npm run build` for the torrent engine, `android/scripts/assemble-assets.sh` (copies `tv/*` UIs to `assets/www`, services to `assets/nodejs-project`), Gradle 8.9 `assembleRelease`. Signed with the `ANDROID_KEYSTORE_B64` + `ANDROID_KEYSTORE_PASSWORD` secrets if present, otherwise a throwaway key (updates then need uninstall). Artifact `DashTV.apk`; tag `android-v*` → Release. Pushes from this session don't trigger runs: dispatch with `mcp__github__actions_run_trigger` (workflow must exist on `main`), then read logs with `mcp__github__get_job_logs`.
+- Install on the Fire TV: Settings → My Fire TV → Developer options → Apps from unknown sources ON; install **Downloader** from the Appstore; enter the APK URL (Release asset). Later: ADB over Wi-Fi for debloat / launcher work.
+- Fire TV remote: D-pad + OK, Back (= Return), Home (system), Menu ≡ (= Info: details / art-only), Play/Pause, Rew/FF, Vol/Mute (system), Alexa (system). No digits/colors; features bound to those on Samsung need nav-bar items here.
+- Services on Android: `auth.js` is absent; the password comes from `DASH_PASSWORD`. USB drives appear under `/storage/<uuid>`; `MANAGE_EXTERNAL_STORAGE`/legacy storage permissions are declared; first-run permission flow is still TODO.
+
+## Legacy: Samsung Tizen tooling
+`tv/` was built for a Samsung Q70C first. The sections below describe that setup; the web UIs and services are shared with the Fire TV app.
 
 ## Where this runs
 - Claude Code must run on a **laptop on the same Wi-Fi as the TV** (Windows, macOS or Linux). A cloud session cannot reach the TV.

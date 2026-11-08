@@ -419,6 +419,10 @@
   function play(item) {
     stopPlayback(true);
     var startAt = item.progress && !item.progress.done ? item.progress.pos : 0;
+    if (window.AndroidHost) {   // Fire TV: native ExoPlayer; progress comes back through onAndroidPlayback
+      window.AndroidHost.play(BASE + '/media/' + item.id, (item.show ? item.show + ' — ' : '') + item.title, Math.round(startAt), item.id);
+      return;
+    }
     S.playing = { item: item, paused: false, pos: startAt, dur: (item.progress && item.progress.dur) || 0, buffering: 0 };
     document.body.classList.add('playing');
     $('osdTitle').textContent = (item.show ? item.show + ' — ' : '') + item.title;
@@ -524,6 +528,11 @@
     $('osdTime').textContent = fmtT(p.pos) + (p.dur ? ' / ' + fmtT(p.dur) : '');
     $('osdBar').style.width = p.dur ? Math.min(100, p.pos / p.dur * 100) + '%' : '0';
   }
+
+  window.onAndroidPlayback = function (id, pos, dur) {
+    if (!id) return;
+    request('PUT', '/api/progress/' + id, { pos: pos, dur: dur }).catch(function () {}).then(function () { loadLib(false); });
+  };
 
   // ------------------------------------------------------------ input
 

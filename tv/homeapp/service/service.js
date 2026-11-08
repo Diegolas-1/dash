@@ -29,6 +29,12 @@ var TYPES = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'ima
 
 var auth = null;
 try { auth = require('./auth.js'); } catch (e) { auth = null; }
+// No auth.js (e.g. Android build): derive the phone-page password from the environment at start.
+if (!auth && process.env.DASH_PASSWORD) {
+  var envSalt = crypto.randomBytes(16);
+  auth = { salt: envSalt.toString('hex'), hash: crypto.scryptSync(process.env.DASH_PASSWORD, envSalt, 32, { N: 16384, r: 8, p: 1 }).toString('hex'), N: 16384, r: 8, p: 1 };
+}
+
 
 // ---------------------------------------------------------------- ring log (read by Dash Server dashboard, loopback only)
 var LOG_MAX = 300;

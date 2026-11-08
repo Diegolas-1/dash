@@ -1,0 +1,88 @@
+name: Fire TV app (APK)
+
+on:
+  push:
+    paths: ['android/**', 'tv/**', '.github/workflows/android.yml']
+    tags: ['android-v*']
+  workflow_dispatch:
+
+env:
+  NODEJS_MOBILE_VERSION: v18.20.4
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.9' }
+
+      - name: Android NDK + CMake
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;26.1.10909125" "cmake;3.22.1" "platforms;android-34" "build-tools;34.0.0" >/dev/null
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> "$GITHUB_ENV"
+
+      - name: Embedded Node runtime (nodejs-mobile)
+        run: |
+          curl -fsSL -o nm.zip "https://github.com/nodejs-mobile/nodejs-mobile/releases/download/${NODEJS_MOBILE_VERSION}/nodejs-mobile-${NODEJS_MOBILE_VERSION}-android.zip"
+          rm -rf android/app/libnode && mkdir -p android/app/libnode && unzip -q nm.zip -d android/app/libnode
+          # the zip may nest everything in a top-level folder; flatten to libnode/{bin,include}
+          if [ ! -d android/app/libnode/bin ]; then inner=$(find android/app/libnode -maxdepth 2 -type d -name bin | head -1); mv "$(dirname "$inner")"/* android/app/libnode/ ; fi
+          ls android/app/libnode/bin
+          rm -rf android/app/libnode/bin/x86_64 android/app/libnode/bin/x86
+
+      - name: Torrent engine bundle
+        working-directory: tv/torrentapp
+        run: npm ci --omit=optional --no-audit --no-fund && npm run build
+
+      - name: Assemble web + service assets
+        run: android/scripts/assemble-assets.sh
+
+      - name: Signing key
+        id: sign
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/dash.jks"
+            echo "ANDROID_KEYSTORE_PASSWORD=$KS_PASS" >> "$GITHUB_ENV"
+            echo "stable=true" >> "$GITHUB_OUTPUT"
+          else
+            keytool -genkeypair -v -keystore "$RUNNER_TEMP/dash.jks" -alias dash -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass dashdash -keypass dashdash -dname "CN=Dash TV, O=Dash, C=US" >/dev/null
+            echo "ANDROID_KEYSTORE_PASSWORD=dashdash" >> "$GITHUB_ENV"
+            echo "stable=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No ANDROID_KEYSTORE_B64 secret: APK signed with a throwaway key. Updates will require uninstalling first."
+          fi
+          echo "ANDROID_KEYSTORE=$RUNNER_TEMP/dash.jks" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_ALIAS=dash" >> "$GITHUB_ENV"
+
+      - name: Build APK
+        working-directory: android
+        env:
+          DASH_VERSION_CODE: ${{ github.run_number }}
+          DASH_VERSION_NAME: ${{ startsWith(github.ref, 'refs/tags/android-v') && github.ref_name || format('1.0.{0}', github.run_number) }}
+        run: gradle --no-daemon :app:assembleRelease
+
+      - name: Collect
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk DashTV.apk
+          ls -la DashTV.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DashTV-apk
+          path: DashTV.apk
+          retention-days: 30
+
+      - name: Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/android-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" DashTV.apk --title "Dash TV ${GITHUB_REF_NAME}" --generate-notes

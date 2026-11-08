@@ -51,6 +51,12 @@ var WebTorrent = null, engineError = null;
 try { WebTorrent = require('./engine.js').default; } catch (e) { engineError = e.message; }
 var auth = null;
 try { auth = require('./auth.js'); } catch (e) { auth = null; }
+// No auth.js (e.g. Android build): derive the phone-page password from the environment at start.
+if (!auth && process.env.DASH_PASSWORD) {
+  var envSalt = crypto.randomBytes(16);
+  auth = { salt: envSalt.toString('hex'), hash: crypto.scryptSync(process.env.DASH_PASSWORD, envSalt, 32, { N: 16384, r: 8, p: 1 }).toString('hex'), N: 16384, r: 8, p: 1 };
+}
+
 
 // ---------------------------------------------------------------- ring log (read by Dash Server dashboard, loopback only)
 var LOG_MAX = 300;
@@ -135,9 +141,10 @@ function usbRoots() {
   function add(p) { if (p && roots.indexOf(p) < 0) roots.push(p); }
   (process.env.DASH_USB_ROOTS || '').split(path.delimiter).forEach(add);
   storageHints.forEach(add);
-  ['/opt/media'].forEach(function (base) {   // Samsung TVs mount USB drives here (e.g. /opt/media/USBDriveA1)
+  ['/opt/media', '/storage'].forEach(function (base) {   // Samsung: /opt/media/USBDriveA1 · Android/Fire TV: /storage/<uuid> (e.g. /opt/media/USBDriveA1)
     try {
       fs.readdirSync(base).forEach(function (n) {
+        if (base === '/storage' && (n === 'emulated' || n === 'self' || n === 'enc_emulated')) return;
         var p = path.join(base, n);
         try { if (fs.statSync(p).isDirectory()) add(p); } catch (e) { /* skip */ }
       });

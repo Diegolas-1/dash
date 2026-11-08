@@ -18,4 +18,7 @@
     tvinputdevice: { registerKey: function () {} }
   };
   window.ANDROID_HOST = true;
+  function isField(el) { return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable); }
+  document.addEventListener('focusin', function (e) { if (H.inputFocus) H.inputFocus(isField(e.target)); }, true);
+  document.addEventListener('focusout', function () { if (H.inputFocus) H.inputFocus(false); }, true);
 })();

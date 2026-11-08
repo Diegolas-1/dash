@@ -135,9 +135,14 @@ class MainActivity : AppCompatActivity() {
 
     // ---- remote keys: translate Fire TV / Android keycodes to the Tizen codes the web apps use
 
+    @Volatile private var inputFocused = false
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val code = translate(event.keyCode)
         if (code == null) return super.dispatchKeyEvent(event)
+        val isLetter = event.keyCode in KeyEvent.KEYCODE_A..KeyEvent.KEYCODE_Z || event.keyCode == KeyEvent.KEYCODE_SPACE ||
+            event.keyCode == KeyEvent.KEYCODE_DEL || event.keyCode in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9
+        if (isLetter && inputFocused) return super.dispatchKeyEvent(event)   // typing into a page field
         if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) sendKey("keydown", code)
         if (event.action == KeyEvent.ACTION_UP) sendKey("keyup", code)
         return true
@@ -165,6 +170,22 @@ class MainActivity : AppCompatActivity() {
         KeyEvent.KEYCODE_LAST_CHANNEL -> 10190
         KeyEvent.KEYCODE_CAPTIONS -> 10221
         in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> 48 + (keyCode - KeyEvent.KEYCODE_0)
+        in KeyEvent.KEYCODE_NUMPAD_0..KeyEvent.KEYCODE_NUMPAD_9 -> 48 + (keyCode - KeyEvent.KEYCODE_NUMPAD_0)
+        // USB keyboard / Flirc-style IR receiver: letters and function keys stand in for the Samsung remote's extra buttons
+        KeyEvent.KEYCODE_F1 -> 403
+        KeyEvent.KEYCODE_F2 -> 404
+        KeyEvent.KEYCODE_F3 -> 405
+        KeyEvent.KEYCODE_F4 -> 406
+        KeyEvent.KEYCODE_I -> 457                           // Info
+        KeyEvent.KEYCODE_G -> 458                           // Guide
+        KeyEvent.KEYCODE_L -> 10073                         // CH LIST
+        KeyEvent.KEYCODE_C -> 10221                         // CC/VD
+        KeyEvent.KEYCODE_PAGE_UP -> 427                     // CH +
+        KeyEvent.KEYCODE_PAGE_DOWN -> 428                   // CH -
+        KeyEvent.KEYCODE_P -> 10190                         // PRE-CH
+        KeyEvent.KEYCODE_FORWARD_DEL, KeyEvent.KEYCODE_DEL -> 10182   // Exit
+        KeyEvent.KEYCODE_SPACE -> 10252                     // play/pause
+        KeyEvent.KEYCODE_HOME, KeyEvent.KEYCODE_MOVE_HOME -> null
         else -> null                                        // D-pad, Enter and everything else: native WebView handling
     }
 
@@ -179,6 +200,7 @@ class MainActivity : AppCompatActivity() {
     /** Methods callable from the pages as `AndroidHost.*`. */
     inner class HostBridge {
         @JavascriptInterface fun hide() { runOnUiThread { moveTaskToBack(true) } }
+        @JavascriptInterface fun inputFocus(focused: Boolean) { inputFocused = focused }
         @JavascriptInterface fun launch(appId: String) { runOnUiThread { loadApp(appId) } }
         @JavascriptInterface fun ambient() { runOnUiThread { loadApp("ambient") } }
         @JavascriptInterface fun pin(): String = prefs.pin

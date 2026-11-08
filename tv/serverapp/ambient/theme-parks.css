@@ -34,7 +34,7 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 /* poster frame: double rule inset from the edge */
 #stage::before { content: ""; position: absolute; inset: 30px; border: 3px double var(--cream-2); pointer-events: none; z-index: 1; transition: border-color var(--t-slow); }
 /* caption band */
-#stage::after { content: ""; position: absolute; left: 30px; right: 30px; bottom: 30px; height: 250px; background: var(--art-dark); opacity: var(--band-alpha); border-top: 3px solid var(--cream-2); transition: background var(--t-slow); }
+#stage::after { content: ""; position: absolute; left: 30px; right: 30px; bottom: 30px; height: 250px; z-index: 2; background: var(--art-dark); opacity: var(--band-alpha); border-top: 3px solid var(--cream-2); transition: background var(--t-slow); }
 
 /* ---------- grid ---------- */
 #stage {
@@ -43,7 +43,7 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
   grid-template-areas: "imprint imprint imprint column" "curve . . column" "clock now now days";
   transition: transform 2s ease-in-out, opacity var(--t-slow);
 }
-#stage > *, .weather > * { position: relative; z-index: 2; }
+#stage > *, .weather > * { position: relative; z-index: 3; }
 #stage > :not(.weather), .weather > * { opacity: 0; animation: reveal 1.4s cubic-bezier(.2,.7,.2,1) forwards; }
 .clockBlock { animation-delay: .2s; } .artCaption { animation-delay: .4s; } .wNow { animation-delay: .55s; } .wDays { animation-delay: .7s; } #wCurve { animation-delay: .85s; } .column { animation-delay: .6s; } .statusline { animation-delay: 1s; }
 @keyframes reveal { to { opacity: 1; } }
@@ -60,7 +60,7 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 .dateline #greeting { display: none; }
 
 /* ---------- museum label (park name), top-left under the imprint ---------- */
-#stage .artCaption { position: absolute; left: 70px; top: 104px; z-index: 2; transition: opacity .9s; text-shadow: 0 1px 2px rgba(0,0,0,.8), 0 0 18px rgba(0,0,0,.5); white-space: nowrap; }
+#stage .artCaption { position: absolute; left: 70px; top: 104px; z-index: 3; transition: opacity .9s; text-shadow: 0 1px 2px rgba(0,0,0,.8), 0 0 18px rgba(0,0,0,.5); white-space: nowrap; }
 .artCaption.swap { opacity: 0; }
 .artPark { font-family: var(--display); font-weight: 700; font-size: 34px; line-height: 1; letter-spacing: 0.12em; text-transform: uppercase; color: var(--art-accent); transition: color var(--t-slow); }
 .artSub { margin-top: 8px; font-family: var(--serif); font-style: italic; font-size: 22px; color: var(--cream-2); display: flex; align-items: center; gap: 10px; }
@@ -101,8 +101,9 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 
 /* ---------- right column: trail-sign plaques ---------- */
 /* The sidebar hangs off the poster frame: flush with the top and right rules, resting on the caption band. */
-#stage .column { position: absolute; top: 33px; right: 33px; bottom: 277px; width: 470px; display: flex; flex-direction: column; gap: 0; min-height: 0; overflow: hidden;
-  background: var(--art-dark); opacity: 0.92; border-left: 3px double var(--cream-2); border-bottom: 3px double var(--cream-2); box-shadow: -14px 0 34px rgba(0,0,0,.25); transition: background var(--t-slow); }
+#stage .column { position: absolute; top: 33px; right: 33px; bottom: 274px; width: 470px; z-index: 1; display: flex; flex-direction: column; gap: 0; min-height: 0; overflow: hidden;
+  background: var(--art-dark); opacity: 0.92; border-left: 3px double var(--cream-2); box-shadow: -14px 0 34px rgba(0,0,0,.25); transition: background var(--t-slow); }
+/* the sidebar tucks under the band: the band's own top rule is the one that shows at the junction */
 .panel.rotate { flex-shrink: 4; }   /* gives way first when the column is tight */
 .panel.lights { flex: 1 0 auto; }   /* the bottom plaque stretches down to the band */
 .panel { background: transparent; border: 0; border-top: 1px solid var(--cream-3); padding: 18px 22px 20px; position: relative; box-shadow: none; flex: 0 1 auto; min-height: 0; }

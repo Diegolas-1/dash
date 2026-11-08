@@ -15,8 +15,14 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Environment
+import android.provider.Settings
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import org.json.JSONArray
 
 /**
@@ -73,7 +79,33 @@ class MainActivity : AppCompatActivity() {
         web.isFocusableInTouchMode = true
         setContentView(web)
         hideSystemUi()
+        requestStorageAccess()
         loadApp(prefs.lastApp)
+    }
+
+    /** Fire OS 7 (Android 9) asks once for storage; Android 11+ needs the "all files" switch for USB drives. */
+    private fun requestStorageAccess() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager() && !prefs.askedAllFiles) {
+                prefs.askedAllFiles = true
+                try {
+                    startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName")))
+                } catch (e: Exception) {
+                    try { startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)) } catch (_: Exception) {}
+                }
+            }
+        } else {
+            val needed = arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                .filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
+            if (needed.isNotEmpty()) ActivityCompat.requestPermissions(this, needed.toTypedArray(), 7)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 7 && grantResults.any { it == PackageManager.PERMISSION_GRANTED }) {
+            web.evaluateJavascript("window.dispatchEvent(new Event('dash-storage-granted'));", null)
+        }
     }
 
     private fun hideSystemUi() {

@@ -30,6 +30,9 @@ class Prefs(context: Context) {
     var goveeKey: String?
         get() = sp.getString("govee", null)
         set(v) = sp.edit().putString("govee", v).apply()
+    var askedAllFiles: Boolean
+        get() = sp.getBoolean("askedAllFiles", false)
+        set(v) = sp.edit().putBoolean("askedAllFiles", v).apply()
     var lastApp: String
         get() = sp.getString("lastApp", "homeapp") ?: "homeapp"
         set(v) = sp.edit().putString("lastApp", v).apply()
